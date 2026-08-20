@@ -870,6 +870,7 @@ def _populate_group(
     treatment: Treatment,
     records: dict[tuple[str, str, str], BuildRecord],
     objects: dict[tuple[str, str, str], list[Path]],
+    verbose: bool = False,
 ) -> None:
     headless, ghidra_home = find_ghidra()
     _require_executable_file(headless, "Ghidra analyzeHeadless")
@@ -991,6 +992,7 @@ def populate_fidbs(
     project_root: Path,
     records: dict[tuple[str, str, str], BuildRecord],
     objects: dict[tuple[str, str, str], list[Path]],
+    verbose: bool = False,
 ) -> None:
     for route in configuration.routes:
         for treatment in configuration.treatments:
@@ -1008,6 +1010,7 @@ def populate_fidbs(
                     treatment,
                     records,
                     objects,
+                    verbose=verbose,
                 )
             except (
                 KeyError,
@@ -1194,7 +1197,7 @@ def execute(
                 announce(f"  {visible_status}")
 
     announce("[ghidra] generating candidate FIDBs")
-    populate_fidbs(configuration, project_root, records, object_sets)
+    populate_fidbs(configuration, project_root, records, object_sets, verbose=verbose)
     ordered = [
         records[(library.identifier, route.id, treatment.id)]
         for library in configuration.libraries
