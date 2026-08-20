@@ -36,7 +36,7 @@ parser.add_argument(
     help="cross compiler prefix relative to the toolchain dir, e.g. bin/powerpc-buildroot-linux-uclibc-",
 )
 parser.add_argument("--library-path", required=True, help="built library path relative to the source build root, e.g. lib/libc.a")
-parser.add_argument("--jobs", default="1")
+parser.add_argument("--jobs", default="4")  # matches the VM's hardcoded -smp 4
 args = parser.parse_args()
 
 WORK = args.work
@@ -57,7 +57,9 @@ print("LAUNCH:", cmd, flush=True)
 child = pexpect.spawn(cmd, timeout=60, encoding="utf-8", logfile=sys.stdout)
 
 child.expect("boot:", timeout=60)
-child.sendline("linux console=ttyS0,115200n8")
+# alpine-virt's syslinux.cfg LABEL is "virt", not "linux" -- sending the
+# wrong label leaves isolinux stuck retrying the boot: prompt forever.
+child.sendline("virt console=ttyS0,115200n8")
 
 child.expect("login:", timeout=120)
 child.sendline("root")

@@ -51,18 +51,28 @@ def _doctor_report() -> dict[str, object]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="fidb-hunt")
-    parser.add_argument(
+    # -v works before AND after the subcommand (`fidb-hunt -v hunt ...` and
+    # `fidb-hunt hunt ... -v` both parse) since it's declared on both the
+    # top-level parser and every subparser via this shared parent.
+    verbose = argparse.ArgumentParser(add_help=False)
+    verbose.add_argument(
         "-v", "--verbose", action="store_true",
         help="log each file compiled/downloaded, URLs used, pass/fail, and storage paths",
     )
+    parser = argparse.ArgumentParser(prog="fidb-hunt", parents=[verbose])
     subcommands = parser.add_subparsers(dest="command", required=True)
-    subcommands.add_parser("doctor", help="report host capabilities for hunting")
-    inspect_parser = subcommands.add_parser("inspect", help="safely inspect an ELF target")
+    subcommands.add_parser("doctor", help="report host capabilities for hunting", parents=[verbose])
+    inspect_parser = subcommands.add_parser(
+        "inspect", help="safely inspect an ELF target", parents=[verbose]
+    )
     inspect_parser.add_argument("target")
-    investigate_parser = subcommands.add_parser("investigate", help="infer candidate library families")
+    investigate_parser = subcommands.add_parser(
+        "investigate", help="infer candidate library families", parents=[verbose]
+    )
     investigate_parser.add_argument("target")
-    hunt_parser = subcommands.add_parser("hunt", help="investigate, prepare, and test catalog candidates")
+    hunt_parser = subcommands.add_parser(
+        "hunt", help="investigate, prepare, and test catalog candidates", parents=[verbose]
+    )
     hunt_parser.add_argument("target")
     hunt_parser.add_argument("--catalog", default="catalogs/default.toml")
     hunt_parser.add_argument("--work", default="work/hunt")
