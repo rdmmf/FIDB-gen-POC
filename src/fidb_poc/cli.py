@@ -79,6 +79,12 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="remove only PROJECT/work and PROJECT/output before building",
     )
+    result.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="stream compiler/Ghidra command output live instead of only on failure",
+    )
     return result
 
 
@@ -101,7 +107,7 @@ def _validate_project_checkout(project_root: Path, config_path: Path) -> None:
     sentinels = (
         project_root / "pyproject.toml",
         project_root / "src/fidb_poc/pipeline.py",
-        project_root / "ghidra_scripts/populate_library_fid_databases.py",
+        project_root / "src/fidb_poc/ghidra_fid.py",
         project_root / "recipes",
     )
     missing = [
@@ -176,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             for target in _fresh_targets(project_root):
                 if target.exists():
                     shutil.rmtree(target)
-        execute(configuration, project_root, progress=print)
+        execute(configuration, project_root, progress=print, verbose=arguments.verbose)
         return 0
     except RecipesNotFoundError as error:
         queue_path = record_missing_requests(

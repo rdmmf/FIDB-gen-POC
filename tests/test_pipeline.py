@@ -11,11 +11,11 @@ from unittest.mock import patch
 from fidb_poc.pipeline import (
     BuildRecord,
     PipelineError,
-    _read_population_report,
+    _populate_group,
     _validate_population_report,
     compiler_identity,
-    ghidra_environment,
     find_pyghidra,
+    ghidra_environment,
     _safe_member_path,
     execute,
     extract_source,
@@ -23,6 +23,7 @@ from fidb_poc.pipeline import (
     pipeline_environment,
     plan,
     populate_fidbs,
+    run_command,
     sha256,
     write_manifest,
 )
@@ -31,6 +32,24 @@ from fidb_poc.config import Library, load_configuration, select_configuration
 
 
 class PipelineTests(unittest.TestCase):
+    def test_run_command_verbose_streams_and_still_matches_buffered_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "logs" / "cmd.log"
+            command = ["python3", "-c", "print('line1'); print('line2')"]
+            printed = []
+            with patch("builtins.print", side_effect=lambda *a: printed.append(" ".join(a))):
+                result = run_command(
+                    command,
+                    cwd=None,
+                    environment={"PATH": "/usr/bin:/bin"},
+                    log_path=log_path,
+                    verbose=True,
+                )
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("line1\nline2\n", result.stdout)
+            self.assertTrue(any("line1" in line for line in printed))
+            self.assertIn("line1", log_path.read_text(encoding="utf-8"))
+
     def test_ghidra_environment_isolates_linux_xdg_directories(self):
         inherited = {
             "XDG_CONFIG_HOME": "/read-only/config",
@@ -274,14 +293,6 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(version, "21.0.11")
             self.assertEqual(major, 21)
 
-    def test_malformed_population_report_is_a_pipeline_error(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            report = Path(temporary) / "population.jsonl"
-            report.write_text("{not-json}\n", encoding="utf-8")
-
-            with self.assertRaisesRegex(PipelineError, "population report"):
-                _read_population_report(report)
-
     def test_population_schema_failure_cleans_partial_fidbs(self):
         source_root = Path(__file__).resolve().parents[1]
         configuration = load_configuration(
@@ -323,6 +334,81 @@ class PipelineTests(unittest.TestCase):
             self.assertIn("malformed report schema", record.error)
             self.assertFalse(candidate.exists())
             self.assertFalse(published.exists())
+
+    def test_populate_group_builds_fidb_via_inprocess_pyghidra(self):
+        """`_populate_group` must drive `ghidra_fid.build_library_fidb` (the
+        in-process pyghidra API) rather than shelling out to
+        analyzeHeadless/pyghidraRun -- that subprocess round-trip is what
+        hung indefinitely on a pip-less venv.
+        """
+        source_root = Path(__file__).resolve().parents[1]
+        configuration = load_configuration(
+            source_root / "worker.json", request_override=("zlib",)
+        )
+        configuration = select_configuration(
+            configuration,
+            route_ids=("linux-x86_64-gnu-gcc",),
+            treatment_ids=None,
+            profile="smoke",
+        )
+        library = configuration.libraries[0]
+        route = configuration.routes[0]
+        treatment = configuration.treatments[0]
+        key = (library.identifier, route.id, treatment.id)
+        records = {key: BuildRecord(status="built")}
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            headless = root / "ghidra/support/analyzeHeadless"
+            headless.parent.mkdir(parents=True)
+            headless.write_text("#!/bin/sh\n", encoding="utf-8")
+            headless.chmod(0o755)
+            properties = root / "ghidra/Ghidra/application.properties"
+            properties.parent.mkdir(parents=True)
+            properties.write_text(
+                "application.version=12.0.4\n"
+                "application.release.name=PUBLIC\n"
+                "application.build.date=2026-01-01\n",
+                encoding="utf-8",
+            )
+            obj = root / "adler32.o"
+            obj.write_bytes(b"fake object")
+            objects = {key: [obj]}
+
+            def fake_build(*, output, **_kwargs):
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_bytes(b"fake fidb")
+                return {"programs": 1, "attempted": 1, "added": 1, "excluded": 0}
+
+            with (
+                patch(
+                    "fidb_poc.pipeline.find_ghidra",
+                    return_value=(headless, root / "ghidra"),
+                ),
+                patch(
+                    "fidb_poc.pipeline.java_identity",
+                    return_value=(Path("/usr/bin/java"), "21.0.1", 21),
+                ),
+                patch(
+                    "fidb_poc.pipeline.pyghidra_identity", return_value="3.1.0"
+                ),
+                patch("fidb_poc.pipeline.ghidra_fid.ensure_started"),
+                patch(
+                    "fidb_poc.pipeline.ghidra_fid.build_library_fidb",
+                    side_effect=fake_build,
+                ) as build,
+            ):
+                _populate_group(configuration, root, route, treatment, records, objects)
+
+            self.assertEqual(build.call_args.kwargs["language"], route.ghidra_language)
+            self.assertEqual(
+                build.call_args.kwargs["compiler_spec"], route.ghidra_compiler_spec
+            )
+            record = records[key]
+            self.assertEqual(record.status, "complete")
+            self.assertEqual(record.fid_added, 1)
+            self.assertEqual(record.pyghidra_version, "3.1.0")
+            self.assertTrue((root / record.fidb_path).is_file())
 
     def test_execute_rejects_symlinked_generated_root(self):
         source_root = Path(__file__).resolve().parents[1]

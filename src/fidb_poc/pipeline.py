@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import json
+import importlib.metadata
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -17,7 +18,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 from urllib.error import HTTPError
 
-from . import __version__
+from . import __version__, ghidra_fid
 from .adapters import (
     AdapterError,
     Detection,
@@ -56,8 +57,6 @@ PASSTHROUGH_ENVIRONMENT = {
     "WINDIR",
     "_JAVA_OPTIONS",
 }
-
-FID_POPULATE_SCRIPT = "populate_library_fid_databases.py"
 
 
 @dataclass
@@ -103,7 +102,6 @@ class BuildRecord:
     ghidra_application_properties_sha256: str = ""
     ghidra_headless_path: str = ""
     pyghidra_version: str = ""
-    pyghidra_launcher_path: str = ""
     java_path: str = ""
     java_version: str = ""
     fidb_path: str = ""
@@ -159,18 +157,45 @@ def run_command(
     environment: dict[str, str],
     log_path: Path,
     timeout: int = 1800,
+    verbose: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        command,
-        cwd=cwd,
-        env=environment,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        timeout=timeout,
-        check=False,
-    )
+    if verbose:
+        print(f"    $ {command_text(command)}")
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        assert process.stdout is not None
+        lines: list[str] = []
+        # ponytail: no per-line timeout while streaming (a fully-silent hang
+        # can't be interrupted here); process.wait() below still enforces one.
+        for line in process.stdout:
+            lines.append(line)
+            print(f"    | {line.rstrip()}")
+        process.stdout.close()
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+            raise
+        result = subprocess.CompletedProcess(command, returncode, "".join(lines), None)
+    else:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+        )
     log_path.write_text(
         f"$ {command_text(command)}\n\n{result.stdout}", encoding="utf-8"
     )
@@ -508,6 +533,7 @@ def build_library(
     source_root: Path,
     work: Path,
     logs: Path,
+    verbose: bool = False,
 ) -> tuple[BuildRecord, list[Path]]:
     record = _base_record(library, route, treatment, detection)
     if not treatment.applies_to(route):
@@ -548,6 +574,7 @@ def build_library(
             environment=environment,
             log_path=logs / "build" / f"{cell_id}-{index:02d}.log",
             timeout=3600,
+            verbose=verbose,
         )
 
     archives = find_static_archives(cell_source, library.static_archives)
@@ -581,6 +608,7 @@ def build_library(
             environment=environment,
             log_path=logs / "link" / f"{cell_id}.log",
             timeout=3600,
+            verbose=verbose,
         )
         _validate_linked_output(linked_output, route, environment)
         analysis_artifacts = [linked_output]
@@ -629,6 +657,8 @@ def find_ghidra() -> tuple[Path, Path]:
 
 
 def find_pyghidra(headless: Path) -> Path:
+    # Still used by language_probe.py's separate subprocess-based probe flow;
+    # _populate_group no longer needs it (see ghidra_fid.py).
     launcher = headless.with_name("pyghidraRun")
     if launcher.is_file():
         return launcher
@@ -709,31 +739,13 @@ def java_identity(environment: dict[str, str]) -> tuple[Path, str, int]:
     return executable, version, major
 
 
-def pyghidra_identity(environment: dict[str, str]) -> tuple[Path, str]:
-    candidate = shutil.which("python3", path=environment.get("PATH"))
-    if candidate is None:
-        raise PipelineError("required executable is unavailable: python3")
-    # Do not resolve a virtual-environment Python symlink: invoking its resolved
-    # base interpreter would bypass that environment and inspect the wrong
-    # package set.
-    python = Path(candidate).absolute()
-    result = subprocess.run(
-        [
-            str(python),
-            "-c",
-            "import importlib.metadata as m; print(m.version('pyghidra'))",
-        ],
-        env=environment,
-        text=True,
-        capture_output=True,
-        timeout=30,
-        check=False,
-    )
-    version = result.stdout.strip()
-    if result.returncode != 0 or not version:
-        detail = result.stderr.strip() or "package metadata was unavailable"
-        raise PipelineError(f"could not identify PyGhidra used by {python}: {detail}")
-    return python, version
+def pyghidra_identity() -> str:
+    # PyGhidra now runs in-process (see ghidra_fid.py), so its version is simply
+    # this interpreter's installed package metadata, not a probed subprocess.
+    try:
+        return importlib.metadata.version("pyghidra")
+    except importlib.metadata.PackageNotFoundError as error:
+        raise PipelineError("could not identify installed pyghidra package") from error
 
 
 def ghidra_environment(project_root: Path) -> dict[str, str]:
@@ -851,24 +863,6 @@ def _validate_population_report(
     return by_library
 
 
-def _read_population_report(report_path: Path) -> list[dict]:
-    try:
-        rows = [
-            json.loads(line)
-            for line in report_path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-    except (OSError, json.JSONDecodeError) as error:
-        raise PipelineError(
-            f"could not read Ghidra population report {report_path}: {error}"
-        ) from error
-    if any(not isinstance(row, dict) for row in rows):
-        raise PipelineError(
-            f"Ghidra population report contains a non-object row: {report_path}"
-        )
-    return rows
-
-
 def _populate_group(
     configuration: Configuration,
     project_root: Path,
@@ -878,28 +872,25 @@ def _populate_group(
     objects: dict[tuple[str, str, str], list[Path]],
 ) -> None:
     headless, ghidra_home = find_ghidra()
-    pyghidra = find_pyghidra(headless)
     _require_executable_file(headless, "Ghidra analyzeHeadless")
-    _require_executable_file(pyghidra, "Ghidra PyGhidra launcher")
     identity = ghidra_identity(headless, ghidra_home)
-    builtin_scripts = ghidra_home / "Ghidra/Features/FunctionID/ghidra_scripts"
-    local_scripts = project_root / "ghidra_scripts"
     group_id = f"{route.id}-{treatment.id}"
     projects = project_root / "work/ghidra/projects" / group_id
     references = project_root / "work/ghidra/references" / route.id / treatment.id
     candidates = project_root / "work/ghidra/candidates" / group_id
     output_fidb = project_root / "output/fidb"
-    logs = project_root / "work/logs/ghidra"
     output_fidb.mkdir(parents=True, exist_ok=True)
     _recreate_directory(projects)
     _recreate_directory(references)
     _recreate_directory(candidates)
-    user_root = project_root / "work/ghidra/user" / group_id
-    _recreate_directory(user_root)
+    # Shared across every route/treatment group in this run: the JVM can only
+    # start once per process, so isolation is scoped to the whole `execute()`
+    # run rather than per group (see ghidra_fid.ensure_started).
+    user_root = project_root / "work/ghidra/user"
+    user_root.mkdir(parents=True, exist_ok=True)
 
     available = []
     expected_program_counts: dict[str, int] = {}
-    first_program: tuple[str, str] | None = None
     for library in configuration.libraries:
         key = (library.identifier, route.id, treatment.id)
         if records[key].status != "built":
@@ -916,101 +907,57 @@ def _populate_group(
         record.ghidra_build = identity.build
         record.ghidra_application_properties_sha256 = identity.properties_sha256
         record.ghidra_headless_path = identity.headless_path
-        library_folder = references / library.identifier
-        library_folder.mkdir(parents=True, exist_ok=True)
-        for index, object_path in enumerate(objects[key], start=1):
-            destination = library_folder / f"{index:04d}-{object_path.name}"
-            shutil.copy2(object_path, destination)
-            if first_program is None:
-                first_program = (library.identifier, destination.name)
-    if not available or first_program is None:
+    if not available:
         return
 
-    project_name = f"FIDB_POC_{group_id.replace('-', '_')}"
     environment = ghidra_environment(user_root)
     java, java_version, _ = java_identity(environment)
-    _, pyghidra_version = pyghidra_identity(environment)
+    pyghidra_version = pyghidra_identity()
+    ghidra_fid.ensure_started(ghidra_home, environment)
     for library in available:
         key = (library.identifier, route.id, treatment.id)
         record = records[key]
         record.pyghidra_version = pyghidra_version
-        record.pyghidra_launcher_path = str(pyghidra.resolve())
         record.java_path = str(java)
         record.java_version = java_version
-    run_command(
-        [
-            str(headless),
-            str(projects),
-            project_name,
-            "-import",
-            str(references),
-            "-recursive",
-            "-processor",
-            route.ghidra_language,
-            "-cspec",
-            route.ghidra_compiler_spec,
-            "-overwrite",
-            "-analysisTimeoutPerFile",
-            "300",
-            "-max-cpu",
-            "2",
-            "-scriptPath",
-            f"{builtin_scripts};{local_scripts}",
-            "-preScript",
-            "FunctionIDHeadlessPrescript.java",
-        ],
-        cwd=project_root,
-        environment=environment,
-        log_path=logs / f"{group_id}-import.log",
-        timeout=3600,
-    )
 
-    rows_path = project_root / "work/ghidra" / f"{group_id}-libraries.tsv"
-    report_path = project_root / "work/ghidra" / f"{group_id}-population.jsonl"
-    if report_path.exists():
-        report_path.unlink()
-    rows = []
+    populations = []
     for library in available:
-        candidate_fidb = candidates / f"{library.identifier}-{group_id}.fidb"
-        rows.append(
-            "\t".join(
-                [
-                    library.name,
-                    library.version,
-                    group_id,
-                    f"/{treatment.id}/{library.identifier}",
-                    str(candidate_fidb),
-                ]
-            )
-        )
-    rows_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
-    first_folder, first_name = first_program
-    run_command(
-        [
-            str(pyghidra),
-            "--headless",
-            str(projects),
-            f"{project_name}/{treatment.id}/{first_folder}",
-            "-process",
-            first_name,
-            "-noanalysis",
-            "-scriptPath",
-            str(local_scripts),
-            "-postScript",
-            FID_POPULATE_SCRIPT,
-            str(rows_path),
-            route.ghidra_language,
-            str(report_path),
-            "-max-cpu",
-            "1",
-        ],
-        cwd=project_root,
-        environment=environment,
-        log_path=logs / f"{group_id}-populate.log",
-        timeout=3600,
-    )
+        key = (library.identifier, route.id, treatment.id)
+        library_folder = references / library.identifier
+        library_folder.mkdir(parents=True, exist_ok=True)
+        staged_objects = []
+        for index, object_path in enumerate(objects[key], start=1):
+            destination = library_folder / f"{index:04d}-{object_path.name}"
+            shutil.copy2(object_path, destination)
+            staged_objects.append(destination)
 
-    populations = _read_population_report(report_path)
+        candidate_fidb = candidates / f"{library.identifier}-{group_id}.fidb"
+        project_name = f"FIDB_{library.identifier}_{group_id}".replace("-", "_")
+        result = ghidra_fid.build_library_fidb(
+            objects=staged_objects,
+            project_dir=projects / library.identifier,
+            project_name=project_name,
+            output=candidate_fidb,
+            library=library.name,
+            version=library.version,
+            variant=group_id,
+            language=route.ghidra_language,
+            compiler_spec=route.ghidra_compiler_spec,
+        )
+        populations.append(
+            {
+                "library": library.name,
+                "version": library.version,
+                "variant": group_id,
+                "fidb_path": str(candidate_fidb.resolve()),
+                "program_count": result["programs"],
+                "attempted": result["attempted"],
+                "added": result["added"],
+                "excluded": result["excluded"],
+            }
+        )
+
     by_library = _validate_population_report(
         populations,
         available,
@@ -1146,6 +1093,7 @@ def execute(
     configuration: Configuration,
     project_root: Path,
     progress: Callable[[str], None] | None = None,
+    verbose: bool = False,
 ) -> Path:
     announce = progress or (lambda _: None)
     downloads = project_root / "work/downloads"
@@ -1224,6 +1172,7 @@ def execute(
                         source_roots[library.identifier],
                         work,
                         logs,
+                        verbose=verbose,
                     )
                 except (
                     AdapterError,
@@ -1301,29 +1250,15 @@ def doctor(configuration: Configuration, project_root: Path) -> list[str]:
         )
     java, java_version, _ = java_identity(environment)
     messages.append(f"java: {java} version={java_version}")
-    python, pyghidra_version = pyghidra_identity(environment)
-    messages.append(f"pyghidra-package: {pyghidra_version} python={python}")
+    pyghidra_version = pyghidra_identity()
+    messages.append(f"pyghidra-package: {pyghidra_version} python={sys.executable}")
     headless, ghidra_home = find_ghidra()
-    pyghidra = find_pyghidra(headless)
     _require_executable_file(headless, "Ghidra analyzeHeadless")
-    _require_executable_file(pyghidra, "Ghidra PyGhidra launcher")
     identity = ghidra_identity(headless, ghidra_home)
-    scripts = (
-        ghidra_home
-        / "Ghidra/Features/FunctionID/ghidra_scripts/FunctionIDHeadlessPrescript.java",
-        project_root / "ghidra_scripts" / FID_POPULATE_SCRIPT,
-    )
-    for script in scripts:
-        if not script.is_file():
-            raise PipelineError(f"required Ghidra script is unavailable: {script}")
-        messages.append(f"ghidra-script: {script.resolve()} sha256={sha256(script)}")
     messages.append(
         f"ghidra: {identity.headless_path} version={identity.version} "
         f"release={identity.release} build={identity.build} "
         f"properties_sha256={identity.properties_sha256}"
-    )
-    messages.append(
-        f"pyghidra: {pyghidra.resolve()} package_version={pyghidra_version}"
     )
     messages.append(
         f"matrix: {len(configuration.treatments)} treatments; "
