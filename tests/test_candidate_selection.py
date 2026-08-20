@@ -39,7 +39,7 @@ class CandidateSelectionTests(unittest.TestCase):
 
         selected = select_recipes(investigation, recipes)
 
-        self.assertEqual([recipe["mode"] for recipe in selected], ["source", "archive"])
+        self.assertEqual([recipe["mode"] for recipe in selected], ["source", "archive", "archive"])
         source_recipe = selected[0]
         self.assertTrue(Path(source_recipe["patches"][0]).exists())
 

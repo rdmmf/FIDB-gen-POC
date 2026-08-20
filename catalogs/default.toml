@@ -485,3 +485,101 @@ mode = "archive"
 url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-i686.tar.bz2"
 sha256 = "5282a7f9aaa896f2b47d0abdb5d5947e207d82a373c3732033ed7eab7b7a5e7d"
 library_member = "cross-compiler-i686/lib/libc.a"
+
+# Additional PowerPC/x86-64/AArch64 archive recipes for match-rate coverage
+# (ported from compile-stdlib-poc commits 64ff8e4, a29a059).
+[[recipes]]
+family = "musl"
+version = "1.2.0"
+variant = "powerpc-e500mc-bootlin-sysroot-2020.08"
+machine = "PowerPC"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--musl--stable-2020.08-1.tar.bz2"
+sha256 = "7f924fc3cc3c9070ea1c9d270fea71715bd52beac14649d8a00416dfde1b897b"
+library_member = "powerpc-e500mc--musl--stable-2020.08-1/powerpc-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "powerpc-e500mc-bootlin-sysroot-2020.08"
+machine = "PowerPC"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "e817af2d5a0fba654e7766dcad89380e278af9feb35c2d0591a0f8d893defa48"
+library_member = "powerpc-e500mc--uclibc--stable-2020.08-1/powerpc-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.39"
+variant = "x86-64-bootlin-sysroot-2021.11"
+machine = "x86-64"
+endianness = "little"
+elf_class = 64
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--uclibc--stable-2021.11-5.tar.bz2"
+sha256 = "e68fd1b23f4a5c5132f2122e4012c17eb24e5179b2ff45bb793a27ac30dd454f"
+library_member = "x86-64--uclibc--stable-2021.11-5/x86_64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.2.2"
+variant = "x86-64-bootlin-sysroot-2021.11"
+machine = "x86-64"
+endianness = "little"
+elf_class = 64
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--musl--stable-2021.11-5.tar.bz2"
+sha256 = "2943617f6537ca195a66fb9db4a801a5dd1c108741c400d530d558d06908dd75"
+library_member = "x86-64--musl--stable-2021.11-5/x86_64-buildroot-linux-musl/sysroot/lib/libc.a"
+
+# AArch64 previously had only one uclibc-1.0.24 (2017.05) recipe -- zero
+# musl/glibc coverage despite both being common on AArch64 IoT targets, and
+# investigate.py proposing glibc for every static target. Adds the 2020.08
+# release across all three families to match the diversity ARM/MIPS/x86 have.
+
+[[recipes]]
+family = "musl"
+version = "1.2.0"
+variant = "aarch64-bootlin-sysroot-2020.08"
+machine = "AArch64"
+endianness = "little"
+elf_class = 64
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--musl--stable-2020.08-1.tar.bz2"
+sha256 = "8319d27e3e637f32ecbdf49ceee2e9b7768b32d3ec7c92c888ff52e6f062bde4"
+library_member = "aarch64--musl--stable-2020.08-1/aarch64-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "glibc"
+version = "2.31"
+variant = "aarch64-bootlin-sysroot-2020.08"
+machine = "AArch64"
+endianness = "little"
+elf_class = 64
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--glibc--stable-2020.08-1.tar.bz2"
+sha256 = "8ab7a2f17cb96621b048ab0a872650dd62faa54cd74c961b9902b8c04bff7dd1"
+library_member = "aarch64--glibc--stable-2020.08-1/aarch64-buildroot-linux-gnu/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "aarch64-bootlin-sysroot-2020.08"
+machine = "AArch64"
+endianness = "little"
+elf_class = 64
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "04176f56ac977215c5257c307cece2d32e03770b96380e09c50379d4d84a5b39"
+library_member = "aarch64--uclibc--stable-2020.08-1/aarch64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
