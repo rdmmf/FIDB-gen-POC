@@ -10,6 +10,7 @@ that launcher, so the same failure mode cannot occur.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pyghidra
@@ -137,3 +138,134 @@ def build_library_fidb(
         finally:
             database.close()
             manager.removeUserFile(fid_file)
+
+
+def compiler_spec_for_language(language: str) -> str:
+    """x86/x86-64 only define a "default" spec for 16-bit real mode; ELF
+    binaries need the "gcc" spec. Every other processor defines "default" as
+    the ELF/gcc-compatible spec, so only x86 is special-cased. Used for
+    hunting (targets and catalog recipes), which have no Route to read an
+    explicit compiler spec from -- build_library_fidb always takes one
+    explicitly instead, since Route already carries the exact spec.
+    """
+    return "gcc" if language.startswith("x86:") else "default"
+
+
+def analyze_target(
+    target: Path, project_parent: Path, project_name: str, language: str
+) -> tuple[Path, str]:
+    """Import and analyze an unknown target once, then reuse its project."""
+    project_parent.mkdir(parents=True, exist_ok=True)
+    program_path = f"/{target.name}"
+    monitor = pyghidra.task_monitor()
+    with pyghidra.open_project(project_parent, project_name, create=True) as project:
+        existing: set[str] = set()
+        pyghidra.walk_project(project, lambda file: existing.add(str(file.getPathname())))
+        if program_path not in existing:
+            loader = pyghidra.program_loader().project(project).source(str(target.resolve()))
+            loader = loader.language(language).compiler(compiler_spec_for_language(language))
+            with loader.load() as loaded:
+                for item in loaded:
+                    item.apply(lambda program: pyghidra.analyze(program, monitor))
+                loaded.save(monitor)
+    return project_parent, program_path
+
+
+def assess_fidb(
+    target_project_dir: Path,
+    target_project_name: str,
+    target_program: str,
+    fidb: Path,
+    output: Path,
+) -> dict[str, object]:
+    """Query an analyzed target against exactly one FID database."""
+    from ghidra.feature.fid.db import FidFileManager
+    from ghidra.feature.fid.service import FidService
+    from java.io import File
+
+    with pyghidra.open_project(target_project_dir, target_project_name) as project:
+        with pyghidra.program_context(project, target_program) as program:
+            manager = FidFileManager.getInstance()
+            manager.load()
+            for item in manager.getFidFiles():
+                item.setActive(False)
+            candidate = manager.addUserFidFile(File(str(fidb.resolve())))
+            candidate.setActive(True)
+            service = FidService()
+            query = manager.openFidQueryService(program.getLanguage(), False)
+            matches = []
+            matched_functions = 0
+            try:
+                results = service.processProgram(
+                    program, query, service.getDefaultScoreThreshold(), pyghidra.task_monitor()
+                )
+                for result in results:
+                    matched_functions += 1
+                    for match in result.matches:
+                        record = match.getFunctionRecord()
+                        library = match.getLibraryRecord()
+                        matches.append(
+                            {
+                                "address": str(result.function.getEntryPoint()),
+                                "name": str(record.getName()),
+                                "score": float(match.getOverallScore()),
+                                "full_hash": format(
+                                    int(result.hashQuad.getFullHash()) & ((1 << 64) - 1), "016x"
+                                ),
+                                "specific_hash": format(
+                                    int(result.hashQuad.getSpecificHash()) & ((1 << 64) - 1), "016x"
+                                ),
+                                "library": str(library.getLibraryFamilyName()),
+                                "version": str(library.getLibraryVersion()),
+                                "variant": str(library.getLibraryVariant()),
+                            }
+                        )
+            finally:
+                query.close()
+                manager.removeUserFile(candidate)
+
+    names_by_address: dict[str, set[str]] = {}
+    for match in matches:
+        names_by_address.setdefault(str(match["address"]), set()).add(str(match["name"]))
+    unambiguous = [
+        match for match in matches if len(names_by_address[str(match["address"])]) == 1
+    ]
+    report = {
+        "matched_functions": matched_functions,
+        "match_count": len(matches),
+        "unambiguous_match_count": len(unambiguous),
+        "unambiguous_matches": unambiguous,
+        "matches": matches,
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    return report
+
+
+def export_raw_fidbf(packed: Path, output: Path) -> Path:
+    """Convert an attachable packed .fidb into Ghidra's installed raw .fidbf
+    format -- the shape Ghidra's own bundled reference libraries ship in
+    under Ghidra/Features/FunctionID/data/*.fidbf. build_library_fidb only
+    ever produces the packed .fidb form.
+    """
+    from db import DBHandle
+    from ghidra.feature.fid.db import FidFileManager
+    from java.io import File
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_suffix(output.suffix + ".part")
+    temporary.unlink(missing_ok=True)
+    manager = FidFileManager.getInstance()
+    manager.load()
+    fid_file = manager.addUserFidFile(File(str(packed.resolve())))
+    database = fid_file.getFidDB(False)
+    try:
+        database.saveRawDatabaseFile(File(str(temporary.resolve())), pyghidra.task_monitor())
+    finally:
+        database.close()
+        manager.removeUserFile(fid_file)
+
+    handle = DBHandle(File(str(temporary.resolve())))
+    handle.close()
+    temporary.replace(output)
+    return output

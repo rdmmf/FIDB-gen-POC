@@ -766,6 +766,7 @@ name = "fidb-poc"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "pexpect" },
     { name = "pyghidra" },
 ]
 
@@ -780,7 +781,10 @@ notebook = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pyghidra", specifier = ">=3.1.0,<4" }]
+requires-dist = [
+    { name = "pexpect", specifier = ">=4.9,<5" },
+    { name = "pyghidra", specifier = ">=3.1.0,<4" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "black", specifier = ">=26.3.1" }]

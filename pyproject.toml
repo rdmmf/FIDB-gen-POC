@@ -3,7 +3,12 @@ name = "fidb-poc"
 version = "0.1.0"
 description = "Small, inspectable Linux x86-64 GNU GCC Ghidra FIDB construction proof of concept"
 requires-python = ">=3.10"
-dependencies = ["pyghidra>=3.1.0,<4"]
+dependencies = [
+    "pyghidra>=3.1.0,<4",
+    # Only used by scripts/drive_source_vm_build.py, run as a subprocess of
+    # the same interpreter for the QEMU-isolated source-recipe build path.
+    "pexpect>=4.9,<5",
+]
 
 [dependency-groups]
 dev = ["black>=26.3.1"]
@@ -12,6 +17,7 @@ notebook = ["jupyterlab>=4,<5", "matplotlib>=3.10,<4"]
 [project.scripts]
 fidb-poc = "fidb_poc.cli:main"
 fidb-language-probe = "fidb_poc.language_probe:main"
+fidb-hunt = "fidb_poc.hunt_cli:main"
 
 [build-system]
 requires = ["hatchling"]

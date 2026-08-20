@@ -1,0 +1,487 @@
+[[recipes]]
+family = "uclibc"
+version = "0.9.30.1"
+variant = "powerpc-default-core"
+machine = "PowerPC"
+endianness = "big"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-powerpc.tar.bz2"
+sha256 = "7e8ee376747d17a93a4a2707232ee8269f2a31779d25dbc07bc2b9477d81a1ac"
+library_member = "cross-compiler-powerpc/lib/libc.a"
+members_file = "uclibc-0.9.30.1-core.txt"
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30.1"
+variant = "powerpc-source-build"
+machine = "PowerPC"
+endianness = "big"
+elf_class = 32
+priority = 5
+mode = "source"
+source_url = "https://uclibc.org/downloads/uClibc-0.9.30.1.tar.bz2"
+source_sha256 = "2d9769a02c46cff73f56a076268192da1ce91c913e2e4e31c120be098f704c8c"
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+toolchain_sha256 = "2eca639c6194147da52d3e3cbd9d3f0fafe23fe152200d4e720cb28ed963d980"
+vm_iso_url = "https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86_64/alpine-virt-3.19.1-x86_64.iso"
+vm_iso_sha256 = "366317d854d77fc5db3b2fd774f5e1e5db0a7ac210614fd39ddb555b09dbb344"
+arch = "powerpc"
+cross_bin_prefix = "bin/powerpc-buildroot-linux-uclibc-"
+kernel_headers_relpath = "powerpc-buildroot-linux-uclibc/sysroot/usr/include"
+library_path = "lib/libc.a"
+patches = ["patches/uclibc-0.9.30.1-powerpc-crtn-size.patch"]
+
+# The following are prebuilt libc.a objects already bundled in official Bootlin
+# toolchain sysroots -- extracted with `ar x` only, nothing is compiled or
+# executed. This trades exact-source-match confidence (they're uclibc-ng, not
+# the older 0.9.30.1 built above) for broad, fast coverage: FID matching is
+# fuzzy/hash-based, not exact-byte, so a close-version libc still scores well
+# and these cover the bulk of arches actually seen in the mirai3 corpus.
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "arm-bootlin-sysroot"
+machine = "ARM"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "9afe6d92b2fdb5eee75c90f776374d19aa1203d5679651b289a4030dc9982036"
+library_member = "armv5-eabi--uclibc--stable/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "mips-be-bootlin-sysroot"
+machine = "MIPS"
+endianness = "big"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32/tarballs/mips32--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "a75aeb0f82eaeaf1989a7dfdf80219486b5ed1470c29c6f253fbcf824922c29f"
+library_member = "mips32--uclibc--stable/mips-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "mips-le-bootlin-sysroot"
+machine = "MIPS"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "374732b8ab264df84ec4b6e70effb622b438e2bbbee1ec9dfffd217f80c93fe5"
+library_member = "mips32el--uclibc--stable/mipsel-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "i686-bootlin-sysroot"
+machine = "x86"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-i686/tarballs/x86-i686--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "f2bb340c47287cec0fcda9d36a715ccfa28d254e80442e5038b142160358c8e2"
+library_member = "x86-i686--uclibc--stable/i686-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.45"
+variant = "x86_64-bootlin-sysroot"
+machine = "x86-64"
+endianness = "little"
+elf_class = 64
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--uclibc--bleeding-edge-2024.02-1.tar.bz2"
+sha256 = "0ebf73f28a369120b0d33ee6800b9b10cf36851cbed3bcad7828c61a7da69588"
+library_member = "x86-64--uclibc--bleeding-edge-2024.02-1/x86_64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "m68k-bootlin-sysroot"
+machine = "M68K"
+endianness = "big"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/m68k-68xxx/tarballs/m68k-68xxx--uclibc--stable-2017.05-toolchains-1-20-ge9cdc44-1.tar.bz2"
+sha256 = "c239bbe2333691a61b704e75c9fc6e88448e206bed4c2b3e71e59646477b628d"
+library_member = "m68k-68xxx--uclibc--stable/m68k-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "aarch64-bootlin-sysroot"
+machine = "AArch64"
+endianness = "little"
+elf_class = 64
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "d4ad325339591b67b68db01b504e278638a8722f20376924755ae83363dcd013"
+library_member = "aarch64--uclibc--stable/aarch64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.1.16"
+variant = "mips-be-bootlin-sysroot"
+machine = "MIPS"
+endianness = "big"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32/tarballs/mips32--musl--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "4b357581f819dd55724a468c994ff2586a89846b7fb4ca81421878efaee4c91a"
+library_member = "mips32--musl--stable/mips-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.1.16"
+variant = "mips-le-bootlin-sysroot"
+machine = "MIPS"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--musl--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "7b08cc49779d63c644a93f31a10328bb9a995ed25d2becbdaa42fd040181d260"
+library_member = "mips32el--musl--stable/mipsel-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.1.16"
+variant = "arm-bootlin-sysroot"
+machine = "ARM"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--musl--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "a3677c7ad85288471c164c67353ba7b5b68aab20c19c17555237b51347159eef"
+library_member = "armv5-eabi--musl--stable/arm-buildroot-linux-musleabi/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.1.16"
+variant = "i686-bootlin-sysroot"
+machine = "x86"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-i686/tarballs/x86-i686--musl--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "6bf1b1932223988468bf3ac8cce83024724aae0c5583aa789d313b6799021af1"
+library_member = "x86-i686--musl--stable/i686-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.24"
+variant = "sh4-bootlin-sysroot"
+machine = "SH"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/sh-sh4/tarballs/sh-sh4--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+sha256 = "005e2c2e1031f9bb7409937b1d35eddfb141010dbab96fd070d7a69b28b7ee2b"
+library_member = "sh-sh4--uclibc--stable/sh4-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+# The following add a second toolchain-release datapoint (2020.08 instead of
+# 2017.05) per arch/family already above -- FID hashing is sensitive to the
+# exact gcc/binutils/libc build that produced a static binary, so a single
+# pinned toolchain snapshot per arch/family is a narrow target. These give
+# `hunt` a second, differently-compiled shot at matching real-world samples
+# whose actual build toolchain is unknown.
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "mips-be-bootlin-sysroot-2020.08"
+machine = "MIPS"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32/tarballs/mips32--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "4c1da37d131f4e66b07536707c6d1be3de29719f228346d4c860c4b3cb4fef31"
+library_member = "mips32--uclibc--stable-2020.08-1/mips-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "mips-le-bootlin-sysroot-2020.08"
+machine = "MIPS"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "8398010ea3dbd43ee99b6be0e3340db44b32228bf063a9c13bf43a359e3d1f6e"
+library_member = "mips32el--uclibc--stable-2020.08-1/mipsel-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.2.0"
+variant = "mips-be-bootlin-sysroot-2020.08"
+machine = "MIPS"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32/tarballs/mips32--musl--stable-2020.08-1.tar.bz2"
+sha256 = "1a544242e9aaaee75c240439a31d2f4304b97705ed2d9e9e38ca552c5f03dced"
+library_member = "mips32--musl--stable-2020.08-1/mips-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.2.0"
+variant = "mips-le-bootlin-sysroot-2020.08"
+machine = "MIPS"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--musl--stable-2020.08-1.tar.bz2"
+sha256 = "02155c88e0bf92f63105803767ce457790bfd920297ef326c9920853b5a3fe20"
+library_member = "mips32el--musl--stable-2020.08-1/mipsel-buildroot-linux-musl/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "arm-bootlin-sysroot-2020.08"
+machine = "ARM"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "cf6a668d4f30a4a2e76a0e88177e1301342cc011e94ea399353e77ede0efbb22"
+library_member = "armv5-eabi--uclibc--stable-2020.08-1/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "musl"
+version = "1.2.0"
+variant = "arm-bootlin-sysroot-2020.08"
+machine = "ARM"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--musl--stable-2020.08-1.tar.bz2"
+sha256 = "732edab571d017c550d74b8c53dc703fc650de7aab66e68c70a0bc19d66d0a22"
+library_member = "armv5-eabi--musl--stable-2020.08-1/arm-buildroot-linux-musleabi/sysroot/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "sh4-bootlin-sysroot-2020.08"
+machine = "SH"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/sh-sh4/tarballs/sh-sh4--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "13a60cd5653c24491748388284080d5b8da649a63090c0d308c3a3b069b04f21"
+library_member = "sh-sh4--uclibc--stable-2020.08-1/sh4-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "1.0.34"
+variant = "m68k-bootlin-sysroot-2020.08"
+machine = "M68K"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/m68k-68xxx/tarballs/m68k-68xxx--uclibc--stable-2020.08-1.tar.bz2"
+sha256 = "b133663f5589c71315224792b7e542cfa578e4c354e4a2ac8afcd5ee77fd6f45"
+library_member = "m68k-68xxx--uclibc--stable-2020.08-1/m68k-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+
+# "Firmware Linux" (impactlinux.com/fwl) cross-compilers, uClibc 0.9.30 -- same
+# toolchain era/major version as the powerpc-default-core recipe above, which
+# is the only recipe in this catalog that has actually matched a real mirai3
+# sample. That target's .init prologue used an old APCS frame-pointer
+# convention (mov ip,sp / push {...,ip,lr,pc} / sub fp,ip,#4) that GCC stopped
+# emitting by default well before any 2017.05+ Bootlin toolchain -- these
+# vintage-2010ish objects are a much closer match for period-correct malware
+# than another modern release would be. High priority: try these first.
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30"
+variant = "armv5l-fwl"
+machine = "ARM"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-armv5l.tar.bz2"
+sha256 = "a5ae9ba0842821fb2d9f7e0b54d3ad23898a1813ae918511bc14fa2de4fe3b35"
+library_member = "cross-compiler-armv5l/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30"
+variant = "mips-be-fwl"
+machine = "MIPS"
+endianness = "big"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-mips.tar.bz2"
+sha256 = "103aeb2c4de79830b7d8fba383ca53683d6a76c807edcff73aca66fc0f24df79"
+library_member = "cross-compiler-mips/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30"
+variant = "mips-le-fwl"
+machine = "MIPS"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-mipsel.tar.bz2"
+sha256 = "ce3b7996f904f6de612394357db6865ba88e62e4044efe16b5c1cd537b07ae45"
+library_member = "cross-compiler-mipsel/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30"
+variant = "sh4-fwl"
+machine = "SH"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-sh4.tar.bz2"
+sha256 = "ea71aee4313f86acf8e4da6196f62119808d79a68c65c9a663776c44b9ed1202"
+library_member = "cross-compiler-sh4/lib/libc.a"
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30"
+variant = "m68k-fwl"
+machine = "M68K"
+endianness = "big"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-m68k.tar.bz2"
+sha256 = "e9f4b21b5b75a80ca13bb33a94b002b1058628fd302f4d44777f35581c65f429"
+library_member = "cross-compiler-m68k/lib/libc.a"
+
+# glibc: previously zero recipes in this family despite investigate.py raising
+# it as a hypothesis for every static-linkage target. Bootlin ships glibc
+# sysroots too -- these give `hunt` a real shot at samples built against glibc
+# instead of an embedded libc.
+
+[[recipes]]
+family = "glibc"
+version = "2.31"
+variant = "mips-be-bootlin-sysroot-2020.08"
+machine = "MIPS"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32/tarballs/mips32--glibc--stable-2020.08-1.tar.bz2"
+sha256 = "90e300a2d224ea79b69cae68e93b0aab70858381b0d11bac846458c625d72653"
+library_member = "mips32--glibc--stable-2020.08-1/mips-buildroot-linux-gnu/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "glibc"
+version = "2.31"
+variant = "arm-hf-bootlin-sysroot-2020.08"
+machine = "ARM"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv7-eabihf/tarballs/armv7-eabihf--glibc--stable-2020.08-1.tar.bz2"
+sha256 = "7b6682603af9a9b5c0e46fd57165723483bb68295e827d14d238e63f33a147a8"
+library_member = "armv7-eabihf--glibc--stable-2020.08-1/arm-buildroot-linux-gnueabihf/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "glibc"
+version = "2.31"
+variant = "powerpc-e500mc-bootlin-sysroot-2020.08"
+machine = "PowerPC"
+endianness = "big"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--glibc--stable-2020.08-1.tar.bz2"
+sha256 = "5bb9f6b10b9d2d1a90a1a96a477b90eea32a269c1afccd89284a38a63d7f1c82"
+library_member = "powerpc-e500mc--glibc--stable-2020.08-1/powerpc-buildroot-linux-gnu/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "glibc"
+version = "2.39"
+variant = "x86-64-bootlin-sysroot-2024.02"
+machine = "x86-64"
+endianness = "little"
+elf_class = 64
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--glibc--stable-2024.02-1.tar.bz2"
+sha256 = "19c8e5bc1395636aef1ce82b1fa7a520f12c8b4ea1b66ac2c80ec30dcf32925e"
+library_member = "x86-64--glibc--stable-2024.02-1/x86_64-buildroot-linux-gnu/sysroot/usr/lib/libc.a"
+
+# Little-endian MIPS and 32-bit x86 glibc had zero recipes despite existing
+# ARM/MIPS-BE/PowerPC/x86-64 glibc coverage above -- select_recipes filters by
+# endianness/machine, so those targets were silently only ever tried against
+# uclibc/musl.
+
+[[recipes]]
+family = "glibc"
+version = "2.31"
+variant = "mips-le-bootlin-sysroot-2020.08"
+machine = "MIPS"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--glibc--stable-2020.08-1.tar.bz2"
+sha256 = "87875c25075b3850526a54c5e828ce489355d0d50107c262539ee5f577f38d6d"
+library_member = "mips32el--glibc--stable-2020.08-1/mipsel-buildroot-linux-gnu/sysroot/usr/lib/libc.a"
+
+[[recipes]]
+family = "glibc"
+version = "2.31"
+variant = "i686-bootlin-sysroot-2020.08"
+machine = "x86"
+endianness = "little"
+elf_class = 32
+priority = 20
+mode = "archive"
+url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-i686/tarballs/x86-i686--glibc--stable-2020.08-1.tar.bz2"
+sha256 = "77362d37279636371a42b09bab4f8f1a51a786ed7ec316221786b279389c8008"
+library_member = "x86-i686--glibc--stable-2020.08-1/i686-buildroot-linux-gnu/sysroot/usr/lib/libc.a"
+
+# Period-correct uClibc-0.9.30 "Firmware Linux" x86 build -- same rationale as
+# the ARM/MIPS/SH/M68K fwl recipes above: real samples near-missed (4 matched,
+# 0 unambiguous) against uclibc-1.0.24, suggesting a right-family/wrong-era gap.
+
+[[recipes]]
+family = "uclibc"
+version = "0.9.30"
+variant = "i686-fwl"
+machine = "x86"
+endianness = "little"
+elf_class = 32
+priority = 10
+mode = "archive"
+url = "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-i686.tar.bz2"
+sha256 = "5282a7f9aaa896f2b47d0abdb5d5947e207d82a373c3732033ed7eab7b7a5e7d"
+library_member = "cross-compiler-i686/lib/libc.a"

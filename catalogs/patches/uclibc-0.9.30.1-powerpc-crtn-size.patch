@@ -1,0 +1,15 @@
+--- a/libc/sysdeps/linux/powerpc/crtn.S	2007-02-12 10:23:14.000000000 +0100
++++ b/libc/sysdeps/linux/powerpc/crtn.S	2026-08-18 23:06:27.433367466 +0200
+@@ -9,7 +9,6 @@
+ 	addi 1,1,32
+ 	mtlr 0
+ 	blr
+-	.size	_init, .-_init
+ 	
+ 	.section .fini
+ 	.align 2
+@@ -20,4 +19,3 @@
+ 	addi 1,1,32
+ 	mtlr 0
+ 	blr
+-	.size	_fini, .-_fini
