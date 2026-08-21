@@ -6,9 +6,19 @@ an argument. The VM's guest arch is always the host's (x86_64, KVM): this
 does NOT emulate the target CPU, it only isolates execution of the
 downloaded, untrusted cross-compiler (and, for --build-adapter plain_make,
 untrusted source) from the host. Network is brought up only long enough to
-install Alpine's own signed make/gcc/musl-dev/gcompat packages, then
-severed via the QEMU monitor before the toolchain or source is ever
-touched.
+install Alpine's own signed make/gcc/musl-dev/gcompat packages (plus unzip,
+if --payload-kind zip), then severed via the QEMU monitor before the
+toolchain or source is ever touched.
+
+--payload-archive/--payload-kind extract an untrusted source archive
+*inside the VM* instead of on the host -- same isolation argument that
+already covers running an untrusted compiler: a parser exploit in the
+disposable, network-severed guest is not a host compromise. Alpine ships
+`unzip` in its main repo, so zip-packaged sources are supported this way;
+it does not ship `unrar`/`p7zip`, so rar-packaged sources have no clean
+signed-package extractor here and are out of scope (see
+recipes/malware/README.md). --src-dir (host pre-extracted) stays the path
+for tar-based sources, unchanged.
 
 --build-adapter selects the fixed, reviewed command sequence run inside the
 VM -- this script never accepts a caller-supplied shell command, matching
@@ -48,7 +58,13 @@ import time
 parser = argparse.ArgumentParser()
 parser.add_argument("--work", required=True)
 parser.add_argument("--iso", required=True)
-parser.add_argument("--src-dir", required=True, help="source tree dir name under --work")
+parser.add_argument("--src-dir", help="source tree dir name under --work, pre-extracted on host")
+parser.add_argument(
+    "--payload-archive",
+    help="raw, unverified-format source archive filename under --work; extracted "
+    "inside the VM instead of on the host. Mutually exclusive with --src-dir.",
+)
+parser.add_argument("--payload-kind", choices=("zip",), help="required with --payload-archive")
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
 parser.add_argument(
     "--build-adapter", choices=("uclibc_defconfig", "plain_make"), default="uclibc_defconfig",
@@ -66,6 +82,10 @@ parser.add_argument("--jobs", default="4")  # matches the VM's hardcoded -smp 4
 args = parser.parse_args()
 if args.build_adapter == "uclibc_defconfig" and not args.arch:
     parser.error("--arch is required for --build-adapter uclibc_defconfig")
+if bool(args.src_dir) == bool(args.payload_archive):
+    parser.error("exactly one of --src-dir or --payload-archive is required")
+if args.payload_archive and not args.payload_kind:
+    parser.error("--payload-kind is required with --payload-archive")
 
 WORK = args.work
 PROMPT = r"localhost:.*# $"
@@ -119,7 +139,10 @@ run("echo 'https://dl-cdn.alpinelinux.org/alpine/v3.19/main' > /etc/apk/reposito
 run("apk update", timeout=60)
 # gcompat: many prebuilt cross-toolchains ship glibc-linked x86_64 binaries;
 # Alpine is musl-based and has no glibc loader without it.
-run("apk add --no-cache make gcc musl-dev gcompat", timeout=90)
+packages = "make gcc musl-dev gcompat"
+if args.payload_kind == "zip":
+    packages += " unzip"
+run(f"apk add --no-cache {packages}", timeout=90)
 run("which make gcc && make --version | head -1 && gcc --version | head -1")
 
 # --- cut the network before touching anything from the downloaded toolchain ---
@@ -147,7 +170,24 @@ print(">>> network removed, proceeding offline", flush=True)
 run("mkdir -p /mnt/ro /mnt/out")
 run("mount -t 9p -o trans=virtio,version=9p2000.L,ro ro9p /mnt/ro")
 run("mount -t 9p -o trans=virtio,version=9p2000.L rwout /mnt/out")
-run(f"cp -r /mnt/ro/{args.src_dir} /root/build", timeout=60)
+if args.src_dir:
+    run(f"cp -r /mnt/ro/{args.src_dir} /root/build", timeout=60)
+else:
+    # Untrusted archive, never parsed on the host: copy the raw bytes in and
+    # extract with Alpine's own signed unzip, inside the disposable,
+    # already-offline guest.
+    run("mkdir -p /root/payload", timeout=15)
+    run(f"unzip -q /mnt/ro/{args.payload_archive} -d /root/payload", timeout=120)
+    run("ls -la /root/payload")
+    # exit 1 must stay inside `sh -c`, not the interactive login shell, or a
+    # layout mismatch would kill the whole console session instead of just
+    # failing this step.
+    run(
+        "sh -c 'set -- /root/payload/*/; "
+        '[ "$#" -eq 1 ] && [ -d "$1" ] || { echo PAYLOAD_LAYOUT_ERROR; exit 1; }; '
+        "mv \"$1\" /root/build'",
+        timeout=30,
+    )
 run(f"cp -r /mnt/ro/{args.toolchain_dir} /root/toolchain", timeout=180)
 
 if args.build_adapter == "uclibc_defconfig":

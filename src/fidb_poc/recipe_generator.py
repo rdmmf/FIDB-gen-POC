@@ -50,6 +50,8 @@ def load_recipes(directory: str | Path) -> list[dict[str, object]]:
         if missing:
             raise ValueError(f"{path} is missing: {', '.join(sorted(missing))}")
         _hex64(recipe["sha256"], path.name)
+        if recipe.get("source_kind", "tar") not in ("tar", "zip"):
+            raise ValueError(f'{path}: unsupported source_kind {recipe["source_kind"]!r}')
         if "patches" in recipe:
             if not isinstance(recipe["patches"], dict):
                 raise ValueError(f"{path}: patches must be a table keyed by toolchain variant")
@@ -100,6 +102,11 @@ def generate_cells(
                 "cross_bin_prefix": row["cross_bin_prefix"],
                 "library_path": recipe["library_path"],
                 "build_adapter": recipe["build_adapter"],
+                # "tar": host extracts (tarfile, stdlib-safe) before the VM boots,
+                # same as every recipe today. "zip": host never parses the
+                # archive -- raw bytes go into the VM and Alpine's own signed
+                # `unzip` extracts them there. See malware_build.py.
+                "source_kind": recipe.get("source_kind", "tar"),
             }
             if "kernel_headers_relpath" in row:
                 cell["kernel_headers_relpath"] = row["kernel_headers_relpath"]

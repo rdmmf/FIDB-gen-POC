@@ -237,14 +237,22 @@ existing catalog `mode="source"` recipe already goes through.
   `origin:<family>/fork:<variant>/arch:<arch>`. Reuses
   `libc_catalog._download_url`/`_extract_verified`/`_digest` and the same
   VM driver.
-- `recipes/malware/README.md` -- the one substantive finding from this
-  pass: DDOS-RootSec's own Mirai-fork archives are `.rar`/`.zip`, not
-  `.tar.*`. Decision: don't add rar/zip parsing of attacker-authored
-  bytes to the pipeline at all (that's its own attack surface, on top of
-  the toolchain risk the VM already isolates) -- malware recipes require
-  an already tar-shaped, SHA256-pinned source, same as every other
-  recipe in the repo. A `.rar`/`.zip` fork has to be re-packaged into a
-  plain tarball by hand, once, as a reviewed step outside the pipeline.
+- `recipes/malware/README.md` -- the substantive finding from this pass:
+  DDOS-RootSec's own Mirai-fork archives are `.rar`/`.zip`, not `.tar.*`.
+  First pass here over-corrected and required host-tar-shaped sources
+  only; on review, the VM isolation argument that already justifies
+  running an untrusted *compiler* applies equally to running an
+  untrusted *archive extractor* inside the same disposable, network-
+  severed guest -- a parser exploit there isn't a host compromise
+  either. So: `source_kind = "zip"` cells are never parsed on the host at
+  all -- the raw, SHA256-verified bytes are copied into the VM and
+  extracted there by Alpine's own signed `unzip` (confirmed present in
+  the v3.19 `main` repo), after network is severed, same as the
+  toolchain. `.rar` stays unsupported specifically because Alpine's v3.19
+  repos (checked directly) ship neither `unrar` nor `p7zip` -- there's no
+  *signed* extractor to install, not a policy objection to extracting
+  inside the VM. A `.rar` fork still needs re-packaging into `.zip`/
+  `.tar.gz` by hand, once, as a reviewed step; a `.zip` fork needs none.
 
 ## What's still open
 
