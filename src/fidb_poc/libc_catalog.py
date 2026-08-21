@@ -299,9 +299,10 @@ def _prepare_source_recipe(
             "--iso", str(iso),
             "--src-dir", src_dir_name,
             "--toolchain-dir", toolchain_dir_name,
+            "--build-adapter", str(recipe.get("build_adapter", "uclibc_defconfig")),
             "--arch", str(recipe["arch"]),
             "--cross-bin-prefix", str(recipe["cross_bin_prefix"]),
-            "--library-path", str(recipe["library_path"]),
+            "--output-relpath", str(recipe["library_path"]),
         ],
         check=True, timeout=3000,
     )

@@ -4,20 +4,40 @@
 Generic across (libc, arch) combos -- everything recipe-specific comes in as
 an argument. The VM's guest arch is always the host's (x86_64, KVM): this
 does NOT emulate the target CPU, it only isolates execution of the
-downloaded, untrusted cross-compiler from the host. Network is brought up
-only long enough to install Alpine's own signed make/gcc/musl-dev/gcompat
-packages, then severed via the QEMU monitor before the toolchain ever runs.
+downloaded, untrusted cross-compiler (and, for --build-adapter plain_make,
+untrusted source) from the host. Network is brought up only long enough to
+install Alpine's own signed make/gcc/musl-dev/gcompat packages, then
+severed via the QEMU monitor before the toolchain or source is ever
+touched.
+
+--build-adapter selects the fixed, reviewed command sequence run inside the
+VM -- this script never accepts a caller-supplied shell command, matching
+the "recipe cannot supply a command" invariant adapters.py enforces on the
+native build path. Adding a new source shape (a different malware fork's
+actual build system) means adding a new named adapter function here, not
+widening this to accept arbitrary text.
+
+  uclibc_defconfig  existing uClibc-family flow: make ARCH=... CROSS=...
+                     against a host-generated .config (kconfig-based libc
+                     source trees only).
+  plain_make         make CC=<cross_bin_prefix>gcc in the source root, no
+                     ARCH=/CROSS=/.config. Verify against the ACTUAL
+                     Makefile of any given malware fork before trusting
+                     output -- this is a sensible default shape, not a
+                     verified match for a specific fork's build system.
 
 Usage:
   drive_source_vm_build.py \
     --work WORK_DIR --iso alpine-virt.iso \
     --src-dir uClibc-0.9.30.1 --toolchain-dir powerpc-e500mc--uclibc--stable \
+    --build-adapter uclibc_defconfig \
     --arch powerpc --cross-bin-prefix bin/powerpc-buildroot-linux-uclibc- \
-    --library-path lib/libc.a
+    --output-relpath lib/libc.a
 
-WORK_DIR must already contain src-dir/ (with a host-generated .config) and
-toolchain-dir/, plus scratch.qcow2 (pre-created) and an out/ subdirectory.
-Copies WORK_DIR/<library-path relative to src build root> to WORK_DIR/out/.
+WORK_DIR must already contain src-dir/ (with a host-generated .config for
+uclibc_defconfig; untouched for plain_make) and toolchain-dir/, plus
+scratch.qcow2 (pre-created) and an out/ subdirectory. Copies
+WORK_DIR/<output-relpath relative to src build root> to WORK_DIR/out/.
 """
 import argparse
 import pexpect
@@ -30,14 +50,22 @@ parser.add_argument("--work", required=True)
 parser.add_argument("--iso", required=True)
 parser.add_argument("--src-dir", required=True, help="source tree dir name under --work")
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
-parser.add_argument("--arch", required=True, help="value for make ARCH=")
+parser.add_argument(
+    "--build-adapter", choices=("uclibc_defconfig", "plain_make"), default="uclibc_defconfig",
+)
+parser.add_argument("--arch", help="value for make ARCH= (uclibc_defconfig only)")
 parser.add_argument(
     "--cross-bin-prefix", required=True,
     help="cross compiler prefix relative to the toolchain dir, e.g. bin/powerpc-buildroot-linux-uclibc-",
 )
-parser.add_argument("--library-path", required=True, help="built library path relative to the source build root, e.g. lib/libc.a")
+parser.add_argument(
+    "--output-relpath", required=True,
+    help="built artifact path relative to the source build root to copy out, e.g. lib/libc.a",
+)
 parser.add_argument("--jobs", default="4")  # matches the VM's hardcoded -smp 4
 args = parser.parse_args()
+if args.build_adapter == "uclibc_defconfig" and not args.arch:
+    parser.error("--arch is required for --build-adapter uclibc_defconfig")
 
 WORK = args.work
 PROMPT = r"localhost:.*# $"
@@ -121,17 +149,25 @@ run("mount -t 9p -o trans=virtio,version=9p2000.L,ro ro9p /mnt/ro")
 run("mount -t 9p -o trans=virtio,version=9p2000.L rwout /mnt/out")
 run(f"cp -r /mnt/ro/{args.src_dir} /root/build", timeout=60)
 run(f"cp -r /mnt/ro/{args.toolchain_dir} /root/toolchain", timeout=180)
-run("ls -la /root/build/.config")
-print(">>> starting build (host generated .config, no cross-compiler involved there)", flush=True)
-run(
-    f"cd /root/build && make ARCH={args.arch} "
-    f"CROSS=/root/toolchain/{args.cross_bin_prefix} -j{args.jobs} "
-    "> /root/build.log 2>&1 ; echo BUILD_EXIT=$?",
-    timeout=2400,
-)
+
+if args.build_adapter == "uclibc_defconfig":
+    run("ls -la /root/build/.config")
+    print(">>> starting build (host generated .config, no cross-compiler involved there)", flush=True)
+    build_command = (
+        f"cd /root/build && make ARCH={args.arch} "
+        f"CROSS=/root/toolchain/{args.cross_bin_prefix} -j{args.jobs} "
+        "> /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
+else:  # plain_make
+    print(">>> starting build (plain make, no ARCH=/.config)", flush=True)
+    build_command = (
+        f"cd /root/build && make CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"-j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
+run(build_command, timeout=2400)
 run("tail -c 300000 /root/build.log")
 print(">>> build step done", flush=True)
-run(f"cp /root/build/{args.library_path} /mnt/out/ && ls -la /mnt/out")
+run(f"cp /root/build/{args.output_relpath} /mnt/out/ && ls -la /mnt/out")
 run("poweroff", expect_prompt=False)
 try:
     child.expect(pexpect.EOF, timeout=60)

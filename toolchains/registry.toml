@@ -1,0 +1,30 @@
+# Reviewed, pinned cross-toolchains. See src/fidb_poc/toolchain_registry.py.
+#
+# A row is "source-capable" once it carries toolchain_url/toolchain_sha256/
+# cross_bin_prefix/cross_arch -- recipe_generator.py fans a recipe out across
+# every matching row's family to build one cell per (recipe, toolchain).
+# A row can additionally carry url/sha256/library_member to also serve as a
+# direct prebuilt-libc.a extraction source (the mode="archive" path
+# libc_catalog.py already handles) -- same pinned toolchain, two uses.
+#
+# Only one row is populated so far: the exact toolchain
+# catalogs/default.toml's hand-written "uclibc 0.9.30.1 powerpc-source-build"
+# recipe already used, ported here so recipe_generator.py can be proven
+# against real, previously-verified hashes instead of a fabricated fixture.
+# Porting the rest of catalogs/default.toml's archive-only rows into this
+# registry is tracked as UNIFICATION_PLAN.md step 2, not done here --
+# catalogs/default.toml keeps working completely unchanged in the meantime.
+
+[[toolchain]]
+family = "uclibc"
+version = "2017.05"
+variant = "powerpc-e500mc-bootlin-2017.05"
+machine = "PowerPC"
+endianness = "big"
+elf_class = 32
+priority = 10
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--uclibc--stable-2017.05-toolchains-1-1.tar.bz2"
+toolchain_sha256 = "2eca639c6194147da52d3e3cbd9d3f0fafe23fe152200d4e720cb28ed963d980"
+cross_bin_prefix = "bin/powerpc-buildroot-linux-uclibc-"
+cross_arch = "powerpc"
+kernel_headers_relpath = "powerpc-buildroot-linux-uclibc/sysroot/usr/include"

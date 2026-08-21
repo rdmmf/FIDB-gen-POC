@@ -1,6 +1,8 @@
 # Recipe unification + malware compilation support
 
-Design doc, not yet implemented. Target: fold the two parallel
+Status: steps 1-4 below are implemented and unit-tested (no regressions in
+the existing suite); steps 5-7 are deliberately not done -- see "What's
+still open" at the bottom. Target: fold the two parallel
 recipe subsystems (`config.py` native Library/Route/Treatment,
 `libc_catalog.py` self-contained TOML catalog) into one authoring
 model, and use it to add Mirai-fork source builds as a third
@@ -203,3 +205,68 @@ suites before the next step starts. No step requires trusting new
 malware source until step 5, and step 5 only ever reaches an
 untrusted compiler through the same severed-network VM every
 existing catalog `mode="source"` recipe already goes through.
+
+## What's implemented (branch `unify-recipes-malware-support`)
+
+- `src/fidb_poc/toolchain_registry.py` -- loads `[[toolchain]]` rows,
+  validates archive-capable and/or source-capable fields, rejects
+  duplicates.
+- `src/fidb_poc/recipe_generator.py` -- `fidb-recipe/v3` TOML loader +
+  `generate_cells(recipes, toolchains)`, producing dicts field-identical
+  to `libc_catalog.py`'s existing `mode="source"` cell shape, plus the
+  shared `(family, version, variant)` duplicate-cell check.
+- `toolchains/registry.toml` + `recipes/libs/uclibc.toml` -- the *one*
+  real case ported end to end: `tests/test_recipe_generator.py` asserts
+  the generated cell reproduces every field of
+  `catalogs/default.toml`'s hand-written "uclibc 0.9.30.1
+  powerpc-source-build" recipe, using the same real, previously-verified
+  hashes. `catalogs/default.toml` itself is untouched -- both paths work
+  side by side.
+- `scripts/drive_source_vm_build.py` generalized: `--build-adapter
+  {uclibc_defconfig,plain_make}` picks the fixed in-VM command sequence
+  (never a recipe-supplied string, matching the existing "recipe cannot
+  supply a command" invariant); `--library-path` renamed to
+  `--output-relpath` since the copied-out artifact isn't always a static
+  archive. `libc_catalog.py`'s `_prepare_source_recipe` updated to match,
+  defaulting to `uclibc_defconfig` so `catalogs/default.toml`'s existing
+  recipe (no `build_adapter` field) behaves exactly as before.
+- `src/fidb_poc/malware_build.py` + `scripts/build_malware_corpus.py` --
+  a cell consumer separate from `libc_catalog.prepare_recipe`/`hunt.py`:
+  builds a `mode="source"` cell into a linked binary (not decomposed
+  `.o` objects) plus a provenance manifest, tagged
+  `origin:<family>/fork:<variant>/arch:<arch>`. Reuses
+  `libc_catalog._download_url`/`_extract_verified`/`_digest` and the same
+  VM driver.
+- `recipes/malware/README.md` -- the one substantive finding from this
+  pass: DDOS-RootSec's own Mirai-fork archives are `.rar`/`.zip`, not
+  `.tar.*`. Decision: don't add rar/zip parsing of attacker-authored
+  bytes to the pipeline at all (that's its own attack surface, on top of
+  the toolchain risk the VM already isolates) -- malware recipes require
+  an already tar-shaped, SHA256-pinned source, same as every other
+  recipe in the repo. A `.rar`/`.zip` fork has to be re-packaged into a
+  plain tarball by hand, once, as a reviewed step outside the pipeline.
+
+## What's still open
+
+- No malware recipe is populated (`recipes/malware/` is empty). Adding
+  one means picking a real fork, verifying its actual build system
+  (`plain_make`'s `make CC=<cross>gcc` shape is a reasonable default,
+  **not verified** against any specific fork's Makefile), and
+  re-packaging its source as a tar.gz if it's only available as
+  `.rar`/`.zip`.
+- The VM build path (`uclibc_defconfig` and `plain_make` alike) has not
+  been run end to end this session -- no KVM/QEMU run was attempted.
+  Matches this repo's existing test coverage shape: `mode="source"` has
+  never had an automated test (only `mode="archive"` does); it's been
+  validated by actually running it (see commit `4fcad89`). Don't trust
+  `plain_make` for a real build until it's been run once and the output
+  inspected, per `recipes/malware/README.md` step 4.
+- `catalogs/default.toml`'s other ~30 archive rows are not yet ported
+  into `toolchains/registry.toml` (step 2) -- only the one row needed to
+  prove the generator was added. `hunt.py`/`hunt_cli.py` are not wired to
+  merge generated cells into a hunt run (step 6) -- generated cells are
+  proven to work with `select_recipes`/`prepare_recipe` by test, not yet
+  reachable from the `fidb-hunt` CLI.
+- JSON→TOML migration for the native Library/Route/Treatment recipes
+  (`recipes/zlib.json`, `recipes/bzip2.json`) is unrelated to malware
+  support and wasn't touched.
