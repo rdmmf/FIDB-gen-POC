@@ -35,6 +35,10 @@ widening this to accept arbitrary text.
                      Makefile of any given malware fork before trusting
                      output -- this is a sensible default shape, not a
                      verified match for a specific fork's build system.
+  mirai_bot_gcc      matches a specific real fork's actual build system
+                     (a direct gcc invocation, no Makefile) -- see the
+                     recipe that uses this adapter for the exact source
+                     and command this was verified against.
 
 Usage:
   drive_source_vm_build.py \
@@ -67,9 +71,13 @@ parser.add_argument(
 parser.add_argument("--payload-kind", choices=("zip",), help="required with --payload-archive")
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
 parser.add_argument(
-    "--build-adapter", choices=("uclibc_defconfig", "plain_make"), default="uclibc_defconfig",
+    "--build-adapter",
+    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc"),
+    default="uclibc_defconfig",
 )
-parser.add_argument("--arch", help="value for make ARCH= (uclibc_defconfig only)")
+parser.add_argument(
+    "--arch", help="value for make ARCH= (uclibc_defconfig) or -DMIRAI_BOT_ARCH= (mirai_bot_gcc)"
+)
 parser.add_argument(
     "--cross-bin-prefix", required=True,
     help="cross compiler prefix relative to the toolchain dir, e.g. bin/powerpc-buildroot-linux-uclibc-",
@@ -80,8 +88,8 @@ parser.add_argument(
 )
 parser.add_argument("--jobs", default="4")  # matches the VM's hardcoded -smp 4
 args = parser.parse_args()
-if args.build_adapter == "uclibc_defconfig" and not args.arch:
-    parser.error("--arch is required for --build-adapter uclibc_defconfig")
+if args.build_adapter in ("uclibc_defconfig", "mirai_bot_gcc") and not args.arch:
+    parser.error(f"--arch is required for --build-adapter {args.build_adapter}")
 if bool(args.src_dir) == bool(args.payload_archive):
     parser.error("exactly one of --src-dir or --payload-archive is required")
 if args.payload_archive and not args.payload_kind:
@@ -198,11 +206,23 @@ if args.build_adapter == "uclibc_defconfig":
         f"CROSS=/root/toolchain/{args.cross_bin_prefix} -j{args.jobs} "
         "> /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
-else:  # plain_make
+elif args.build_adapter == "plain_make":
     print(">>> starting build (plain make, no ARCH=/.config)", flush=True)
     build_command = (
         f"cd /root/build && make CC=/root/toolchain/{args.cross_bin_prefix}gcc "
         f"-j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
+else:  # mirai_bot_gcc -- mirrors the compile_bot() function in the fork's
+       # own mirai/build.sh: a direct gcc invocation, no Makefile
+    print(">>> starting build (mirai_bot_gcc, direct gcc invocation)", flush=True)
+    output_dir = "/".join(args.output_relpath.split("/")[:-1]) or "."
+    output_name = args.output_relpath.split("/")[-1]
+    build_command = (
+        f"cd /root/build/{output_dir} && "
+        f"/root/toolchain/{args.cross_bin_prefix}gcc -std=c99 bot/*.c "
+        f"-O3 -fomit-frame-pointer -fdata-sections -ffunction-sections -Wl,--gc-sections "
+        f'-o {output_name} -DMIRAI_BOT_ARCH=\\"{args.arch}\\" -DMIRAI_TELNET -static '
+        "> /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
 run(build_command, timeout=2400)
 run("tail -c 300000 /root/build.log")
