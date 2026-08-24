@@ -234,7 +234,7 @@ def _recreate_directory(path: Path) -> None:
 def validate_generated_root(project_root: Path, path: Path, expected_name: str) -> Path:
     resolved_root = project_root.resolve()
     expected = resolved_root / expected_name
-    if path.name != expected_name or path.is_symlink():
+    if path.name != Path(expected_name).name or path.is_symlink():
         raise PipelineError(f"refusing unsafe generated root: {path}")
     if path.exists() and not path.is_dir():
         raise PipelineError(f"generated root is not a directory: {path}")
@@ -879,7 +879,7 @@ def _populate_group(
     projects = project_root / "work/ghidra/projects" / group_id
     references = project_root / "work/ghidra/references" / route.id / treatment.id
     candidates = project_root / "work/ghidra/candidates" / group_id
-    output_fidb = project_root / "output/fidb"
+    output_fidb = project_root / "artifacts/libs/fidb"
     output_fidb.mkdir(parents=True, exist_ok=True)
     _recreate_directory(projects)
     _recreate_directory(references)
@@ -1027,7 +1027,7 @@ def populate_fidbs(
                 for library, key in zip(configuration.libraries, group_keys):
                     partial_fidb = (
                         project_root
-                        / "output/fidb"
+                        / "artifacts/libs/fidb"
                         / f"{library.identifier}-{group_id}.fidb"
                     )
                     partial_fidb.unlink(missing_ok=True)
@@ -1103,10 +1103,10 @@ def execute(
     sources = project_root / "work/sources"
     work = project_root / "work"
     logs = work / "logs"
-    output = project_root / "output"
+    output = project_root / "artifacts" / "libs"
     manifest = output / "fidb_manifest.csv"
     validate_generated_root(project_root, work, "work")
-    validate_generated_root(project_root, output, "output")
+    validate_generated_root(project_root, output, "artifacts/libs")
     generated_children = (
         (work, downloads, "downloads"),
         (work, sources, "sources"),

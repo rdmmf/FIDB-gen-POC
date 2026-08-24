@@ -9,11 +9,21 @@ class ToolchainRegistryTests(unittest.TestCase):
     def test_repository_registry_is_valid(self):
         root = Path(__file__).resolve().parents[1]
         rows = load_toolchains(root / "toolchains" / "registry.toml")
-        self.assertEqual(len(rows), 1)
-        row = rows[0]
+        self.assertEqual(len(rows), 41)
+        source_rows = [row for row in rows if "toolchain_url" in row]
+        self.assertEqual(len(source_rows), 1)
+        row = source_rows[0]
         self.assertEqual(row["family"], "uclibc")
         self.assertEqual(row["cross_arch"], "powerpc")
         self.assertEqual(len(row["toolchain_sha256"]), 64)
+
+    def test_archive_row_members_file_is_resolved_and_hashed(self):
+        root = Path(__file__).resolve().parents[1]
+        rows = load_toolchains(root / "toolchains" / "registry.toml")
+        row = next(row for row in rows if row.get("members_file"))
+        self.assertTrue(Path(row["members_file"]).is_file())
+        self.assertEqual(len(row["members_sha256"]), 64)
+        self.assertEqual(row["mode"], "archive")
 
     def test_source_row_missing_cross_arch_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -121,7 +121,7 @@ two-library run ends with:
 
 ```text
 Result: complete=2
-Manifest: .../output/fidb_manifest.csv
+Manifest: .../artifacts/libs/fidb_manifest.csv
 ```
 
 A real build exits nonzero if any requested cell does not reach `complete`, so
@@ -149,15 +149,19 @@ from the repository root so the notebook uses this checkout and its locked
 environment.
 
 The notebook executes a real zlib build and a LanguageID diagnostic probe. It
-therefore recreates `work/` and `output/`, including a candidate FIDB, CSV
+therefore recreates `work/` and `artifacts/libs/`, including a candidate FIDB, CSV
 reports and a PNG chart. Remove those generated directories after the demo when
 preparing a source-only handoff.
 
 ## Inputs, evidence and temporary outputs
 
-`recipes/*.json` is the reviewed source catalogue. Each recipe declares the
-canonical name and version, archive URL and SHA-256, expected source markers,
-build system and expected static archive. A recipe cannot contain a command.
+`recipes/*.toml` (`mode="native"`) is the reviewed source catalogue for this
+worker. Each recipe declares the canonical name and version, archive URL and
+SHA-256, expected source markers, build system and expected static archive.
+A recipe cannot contain a command. Every recipe in this repository -- native
+library, libc, or malware fork alike -- uses this same `fidb-recipe/v3` TOML
+schema; only the directory and `mode` differ. See **Hunting an unknown
+target** below for the other two.
 
 `worker.json` is trusted operator configuration for the single Linux route, one
 treatment and one profile. It is not untrusted request data.
@@ -166,12 +170,14 @@ A real run creates temporary working state and evidence:
 
 ```text
 work/                         downloaded/extracted source, builds, logs, Ghidra projects
-output/fidb/                  generated per-cell FIDBs
-output/fidb_manifest.csv      result and provenance rows
+artifacts/libs/fidb/                  generated per-cell FIDBs
+artifacts/libs/fidb_manifest.csv      result and provenance rows
 ```
 
-`--fresh` removes `work/` and `output/` at the start and then recreates them during
-the run. It is a clean-build option, not a post-run cleanup option.
+`--fresh` removes `work/` and `artifacts/libs/` at the start and then recreates
+them during the run (`artifacts/malware/` and `artifacts/fidbs/` are a separate
+subsystem's evidence and are never touched by this build's `--fresh`). It is a
+clean-build option, not a post-run cleanup option.
 
 Without `--fresh`, only a hash-verified downloaded source archive may be reused.
 Every real run still replaces the worker-managed extracted sources, builds, logs,
@@ -179,14 +185,14 @@ Ghidra state, current FIDBs and manifest. Paths outside those managed locations
 are not part of the cleanup.
 
 These directories are intentionally ignored and are not source deliverables. A
-source-only handoff must omit `work/`, `output/`, `.venv/`, `.idea/`, Python caches
-and notebook execution outputs. Prefer producing a handoff from a real clean Git
-checkout or an explicit source allowlist rather than archiving an active working
-directory. At minimum, remove the generated roots after preserving any evidence
-that is meant to be reviewed:
+source-only handoff must omit `work/`, `artifacts/libs/`, `.venv/`, `.idea/`,
+Python caches and notebook execution outputs. Prefer producing a handoff from a
+real clean Git checkout or an explicit source allowlist rather than archiving
+an active working directory. At minimum, remove the generated roots after
+preserving any evidence that is meant to be reviewed:
 
 ```sh
-rm -rf -- work output
+rm -rf -- work artifacts/libs
 ```
 
 The manifest and FIDBs are evidence for a particular execution, not permanent
@@ -240,6 +246,46 @@ Priorities are `0` for a campaign or analyst request, `1` for a ranked catalogue
 and `2` for discovery. Adding a recipe or adapter is an ordinary reviewed source
 change.
 
+## Hunting an unknown target
+
+Building the two reviewed recipes above is only one thing `fidb-poc` does.
+The same binary also takes an arbitrary target and works out which libc it was
+probably built against, cross-compiling candidates inside an isolated,
+network-severed QEMU VM when no prebuilt archive matches -- via the
+`inspect`/`investigate`/`hunt`/`build-malware`/`hunt-doctor` subcommands
+(`fidb-hunt` still works too, as a thin alias over the same code):
+
+```text
+target binary
+  -> investigate: infer machine/endianness/elf_class and libc family hypotheses
+  -> select: matching toolchain rows + recipe-generated cells, closest priority first
+  -> prepare: extract a prebuilt libc.a, or cross-compile one in an isolated VM
+  -> match: Ghidra FID comparison against the target
+  -> report + copy: exported .fidb/.fidbf per unambiguous match, ready to reuse
+```
+
+```sh
+uv run fidb-poc hunt path/to/target --fidb-dir artifacts/fidbs
+```
+
+Candidates come from `toolchains/registry.toml` (pinned cross-toolchains,
+some directly archive-extractable) and `recipes/libs/*.toml`
+(`mode="source"`, fanned out per matching toolchain by
+`recipe_generator.generate_cells`) -- see `UNIFICATION_PLAN.md` for why this
+is one schema instead of the two ad hoc ones this repository started with.
+
+The same VM isolation also builds a static, known-source malware corpus from
+`recipes/malware/*.toml`, for use as ground truth rather than as an unknown
+target to match:
+
+```sh
+uv run fidb-poc build-malware --recipes recipes/malware
+```
+
+See `recipes/malware/README.md` before adding a fork recipe -- source
+archives are pinned by SHA-256, never a moving branch ref, and are only ever
+unpacked/compiled inside the disposable, offline VM.
+
 ## Verification
 
 The deterministic unit and formatting checks do not download library source or run
@@ -265,12 +311,18 @@ FIDB_RUN_LIVE_SMOKE=1 \
 
 | Path | Responsibility |
 | ---- | -------------- |
-| `src/fidb_poc/cli.py` | command-line boundary and exit status |
+| `src/fidb_poc/cli.py` | `fidb-poc` command-line boundary and exit status |
 | `src/fidb_poc/config.py` | recipe, route and treatment validation |
 | `src/fidb_poc/adapters.py` | fixed Autoconf/Make command construction |
 | `src/fidb_poc/pipeline.py` | retrieval, build isolation, validation, Ghidra and manifest output |
 | `ghidra_scripts/populate_library_fid_databases.py` | FID database population adapter |
-| `recipes/` | reviewed name-to-source catalogue |
+| `recipes/*.toml` | reviewed name-to-source catalogue, one `fidb-recipe/v3` schema throughout |
+| `src/fidb_poc/hunt_cli.py` | hunt/malware subcommand boundary (`hunt`, `build-malware`, `doctor`, `investigate`, `inspect`), reached via `fidb-poc <subcommand>` or the `fidb-hunt` alias |
+| `src/fidb_poc/hunt.py` | investigate -> select -> prepare -> match -> export workflow |
+| `src/fidb_poc/toolchain_registry.py` | pinned cross-toolchain rows (`toolchains/registry.toml`) |
+| `src/fidb_poc/recipe_generator.py` | recipe x toolchain registry -> resolved build cells |
+| `src/fidb_poc/libc_catalog.py` | cell selection, download, extraction and VM-isolated source build |
+| `src/fidb_poc/malware_build.py` | cell -> linked malware binary + provenance manifest |
 
 The repository also contains an experimental `fidb-language-probe` analysis
 utility. It is not part of the supported worker demonstration or the validation

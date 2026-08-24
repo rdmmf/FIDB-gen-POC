@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -113,9 +114,11 @@ def _required(record: dict, field: str, context: str):
 
 
 def _load_recipe(path: Path) -> Library:
-    row = json.loads(path.read_text(encoding="utf-8"))
-    if row.get("schema_version") != "fidb-recipe/v2":
+    row = tomllib.loads(path.read_text(encoding="utf-8"))
+    if row.get("schema_version") != "fidb-recipe/v3":
         raise ValueError(f"unsupported or missing schema_version in {path}")
+    if row.get("mode") != "native":
+        raise ValueError(f'{path}: config.py only handles mode="native" recipes')
     library = Library(
         name=_path_component(
             _required(row, "name", f"recipe {path.name}"),
@@ -156,7 +159,7 @@ def _recipe_catalog(recipe_directory: Path) -> dict[str, Library]:
     if not recipe_directory.is_dir():
         raise ValueError(f"recipe directory does not exist: {recipe_directory}")
     recipes: dict[str, Library] = {}
-    for path in sorted(recipe_directory.glob("*.json")):
+    for path in sorted(recipe_directory.glob("*.toml")):
         recipe = _load_recipe(path)
         keys = (recipe.name, recipe.identifier, f"{recipe.name}@{recipe.version}")
         for key in keys:

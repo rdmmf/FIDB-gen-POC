@@ -11,6 +11,7 @@ toolchain, two uses, no duplication.
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 import tomllib
 
@@ -46,9 +47,17 @@ def load_toolchains(path: str | Path) -> list[dict[str, object]]:
             _hex64(row["sha256"], label)
             if "library_member" not in row:
                 raise ValueError(f"{label} has url but no library_member")
+            # Tags the row as a directly consumable libc_catalog.py
+            # mode="archive" cell -- same field select_recipes/prepare_recipe
+            # already key off, no separate archive-cell-building step needed.
+            row.setdefault("mode", "archive")
         if has_source:
             missing_source = SOURCE_FIELDS - row.keys()
             if missing_source:
                 raise ValueError(f"{label} is missing: {', '.join(sorted(missing_source))}")
             _hex64(row["toolchain_sha256"], label)
+        if "members_file" in row:
+            members = (registry_path.parent / str(row["members_file"])).resolve()
+            row["members_file"] = str(members)
+            row["members_sha256"] = hashlib.sha256(members.read_bytes()).hexdigest()
     return rows

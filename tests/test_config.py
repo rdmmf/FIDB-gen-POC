@@ -1,6 +1,7 @@
 import json
 import shutil
 import tempfile
+import tomllib
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -53,7 +54,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_recipes_describe_detection_not_translation_units(self):
         root = Path(__file__).resolve().parents[1]
-        recipe = json.loads((root / "recipes/zlib.json").read_text())
+        recipe = tomllib.loads((root / "recipes/zlib.toml").read_text())
         self.assertEqual(recipe["preferred_build_system"], "autoconf")
         self.assertEqual(recipe["static_archives"], ["libz.a"])
         self.assertNotIn("sources", recipe)
@@ -113,10 +114,13 @@ class ConfigurationTests(unittest.TestCase):
             checkout = Path(temporary)
             shutil.copy(root / "worker.json", checkout / "worker.json")
             shutil.copytree(root / "recipes", checkout / "recipes")
-            recipe_path = checkout / "recipes/zlib.json"
-            recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
-            recipe["source_directory"] = "../../src"
-            recipe_path.write_text(json.dumps(recipe), encoding="utf-8")
+            recipe_path = checkout / "recipes/zlib.toml"
+            text = recipe_path.read_text(encoding="utf-8")
+            text = text.replace(
+                'source_directory = "zlib-1.3.1"',
+                'source_directory = "../../src"',
+            )
+            recipe_path.write_text(text, encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "source_directory must be a safe"):
                 load_configuration(checkout / "worker.json")

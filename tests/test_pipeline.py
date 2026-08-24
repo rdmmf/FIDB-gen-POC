@@ -318,7 +318,7 @@ class PipelineTests(unittest.TestCase):
                 / group_id
                 / f"{library.identifier}-{group_id}.fidb"
             )
-            published = root / "output/fidb" / candidate.name
+            published = root / "artifacts/libs/fidb" / candidate.name
             candidate.parent.mkdir(parents=True)
             published.parent.mkdir(parents=True)
             candidate.write_bytes(b"partial")
@@ -462,7 +462,7 @@ class PipelineTests(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            stale = root / "output/fidb/stale.fidb"
+            stale = root / "artifacts/libs/fidb/stale.fidb"
             stale.parent.mkdir(parents=True)
             stale.write_bytes(b"stale")
             progress = []
@@ -476,7 +476,7 @@ class PipelineTests(unittest.TestCase):
             ):
                 execute(configuration, root, progress=progress.append)
 
-            manifest = root / "output/fidb_manifest.csv"
+            manifest = root / "artifacts/libs/fidb_manifest.csv"
             self.assertTrue(manifest.is_file())
             self.assertFalse(stale.exists())
             self.assertIn("Result: build_failed=1", progress)

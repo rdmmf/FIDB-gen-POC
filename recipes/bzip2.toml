@@ -1,0 +1,11 @@
+schema_version = "fidb-recipe/v3"
+mode = "native"
+name = "bzip2"
+version = "1.0.7"
+url = "https://sourceware.org/pub/bzip2/bzip2-1.0.7.tar.gz"
+sha256 = "e768a87c5b1a79511499beb41500bcc4caf203726fff46a6f5f9ad27fe08ab2b"
+source_directory = "bzip2-1.0.7"
+project_markers = ["bzlib.h", "Makefile"]
+allowed_build_systems = ["make"]
+preferred_build_system = "make"
+static_archives = ["libbz2.a"]

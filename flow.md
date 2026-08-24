@@ -32,8 +32,8 @@ CLI command
 > Import objects into Ghidra
 > Generate one candidate FIDB per library
 > Validate Ghidra's population report
-> Admit valid FIDBs into output/fidb/
-> Write output/fidb_manifest.csv
+> Admit valid FIDBs into artifacts/libs/fidb/
+> Write artifacts/libs/fidb_manifest.csv
 > Return success only if every requested cell completed
 ```
 
@@ -122,7 +122,7 @@ Library resolution is name-based:
 
 ```text
 zlib
-> recipes/zlib.json
+> recipes/zlib.toml
 > version 1.3.1
 > pinned source URL and SHA-256
 > expected source markers
@@ -130,7 +130,7 @@ zlib
 > expected libz.a
 
 bzip2
-> recipes/bzip2.json
+> recipes/bzip2.toml
 > version 1.0.7
 > pinned source URL and SHA-256
 > expected source markers
@@ -140,8 +140,8 @@ bzip2
 
 Recipes:
 
-- [`recipes/zlib.json`](recipes/zlib.json)
-- [`recipes/bzip2.json`](recipes/bzip2.json)
+- [`recipes/zlib.toml`](recipes/zlib.toml)
+- [`recipes/bzip2.toml`](recipes/bzip2.toml)
 
 An unknown name takes a fail-closed side path:
 
@@ -183,7 +183,7 @@ PROJECT/
   > builds/
   > logs/
   > ghidra/
-> output/
+> artifacts/libs/
   > fidb/
   > fidb_manifest.csv
 ```
@@ -455,7 +455,7 @@ population JSONL
 > require attempted = added + excluded
 > require at least one added signature
 > require a non-empty FIDB
-> move the candidate into output/fidb/
+> move the candidate into artifacts/libs/fidb/
 > hash the final FIDB
 > mark the BuildRecord complete
 ```
@@ -469,7 +469,7 @@ Code:
 Final database paths:
 
 ```text
-output/fidb/
+artifacts/libs/fidb/
 > zlib-1.3.1-linux-x86_64-gnu-gcc-baseline_o2.fidb
 > bzip2-1.0.7-linux-x86_64-gnu-gcc-baseline_o2.fidb
 ```
@@ -483,9 +483,9 @@ records `fid_failed` rather than silently dropping the cell.
 all BuildRecord objects
 > write_manifest()
 > convert records into CSV rows
-> write a temporary CSV in output/
+> write a temporary CSV in artifacts/libs/
 > flush and fsync it
-> atomically replace output/fidb_manifest.csv
+> atomically replace artifacts/libs/fidb_manifest.csv
 ```
 
 Code:
@@ -515,11 +515,11 @@ The manifest is written even when one or more cells fail. After writing it:
 
 ```text
 every record is complete
-> return output/fidb_manifest.csv
+> return artifacts/libs/fidb_manifest.csv
 > CLI exits 0
 
 one or more records are incomplete
-> retain output/fidb_manifest.csv as evidence
+> retain artifacts/libs/fidb_manifest.csv as evidence
 > raise PipelineError with per-cell statuses
 > CLI exits 1
 ```
@@ -550,7 +550,7 @@ uv run fidb-poc
 > ghidra_scripts/populate_library_fid_databases.py
 > FidService.createNewLibraryFromPrograms()
 > pipeline._validate_population_report()
-> output/fidb/*.fidb
+> artifacts/libs/fidb/*.fidb
 > pipeline.write_manifest()
-> output/fidb_manifest.csv
+> artifacts/libs/fidb_manifest.csv
 ```

@@ -9,6 +9,19 @@ from .config import RecipesNotFoundError, load_configuration, select_configurati
 from .pipeline import PipelineError, doctor, execute, plan
 from .request_queue import record_missing_requests
 
+# Phase 2 CLI unification: fidb-hunt's investigate/hunt/build-malware surface
+# lives under this same binary instead of a second entry point (fidb-hunt
+# stays as a thin alias -- see hunt_cli.main). "doctor" is renamed
+# hunt-doctor here since fidb-poc already has a --doctor flag with a
+# different meaning (build-tool validation vs hunt-capability report).
+_HUNT_SUBCOMMANDS = {
+    "inspect": "inspect",
+    "investigate": "investigate",
+    "hunt": "hunt",
+    "build-malware": "build-malware",
+    "hunt-doctor": "doctor",
+}
+
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
@@ -124,16 +137,20 @@ def _validate_project_checkout(project_root: Path, config_path: Path) -> None:
 
 
 def _fresh_targets(project_root: Path) -> tuple[Path, Path]:
-    targets = (project_root / "work", project_root / "output")
-    for target, expected_name in zip(targets, ("work", "output")):
-        if target.name != expected_name or target.parent != project_root:
+    # "artifacts/libs" only -- artifacts/malware and artifacts/fidbs are a
+    # different subsystem's data (different trust posture) and must survive
+    # a native-build --fresh.
+    names = ("work", "artifacts/libs")
+    targets = tuple(project_root / name for name in names)
+    for target, expected_name in zip(targets, names):
+        expected = project_root / expected_name
+        if target.name != Path(expected_name).name or target.parent != expected.parent:
             raise PipelineError(f"refusing unsafe --fresh target: {target}")
         if target.is_symlink():
             raise PipelineError(f"refusing symlinked --fresh target: {target}")
         if target.exists() and not target.is_dir():
             raise PipelineError(f"refusing non-directory --fresh target: {target}")
         resolved = target.resolve()
-        expected = project_root / expected_name
         if resolved != expected:
             raise PipelineError(
                 f"refusing --fresh target other than {expected}: {target}"
@@ -144,6 +161,11 @@ def _fresh_targets(project_root: Path) -> tuple[Path, Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    tokens = sys.argv[1:] if argv is None else argv
+    if tokens and tokens[0] in _HUNT_SUBCOMMANDS:
+        from .hunt_cli import main as hunt_main
+
+        return hunt_main([_HUNT_SUBCOMMANDS[tokens[0]], *tokens[1:]])
     arguments = parser().parse_args(argv)
     if not arguments.doctor and not arguments.plan and not arguments.routes:
         print(

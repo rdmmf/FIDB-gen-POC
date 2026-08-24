@@ -2,7 +2,8 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 
-from fidb_poc.libc_catalog import load_recipes, select_recipes
+from fidb_poc.hunt import load_cells
+from fidb_poc.libc_catalog import select_recipes
 
 
 class CandidateSelectionTests(unittest.TestCase):
@@ -28,8 +29,8 @@ class CandidateSelectionTests(unittest.TestCase):
         # PowerPC/uClibc evidence, hunt should try the from-source recipe first
         # (a real compile, not a third-party prebuilt archive) since it has a
         # lower priority number, before falling back to the archive.
-        catalog = Path(__file__).resolve().parents[1] / "catalogs" / "default.toml"
-        recipes = load_recipes(catalog)
+        root = Path(__file__).resolve().parents[1]
+        recipes = load_cells(root / "toolchains" / "registry.toml", root / "recipes" / "libs")
         investigation = SimpleNamespace(
             target=SimpleNamespace(machine="PowerPC", endianness="big", elf_class=32),
             hypotheses=(SimpleNamespace(
@@ -47,8 +48,8 @@ class CandidateSelectionTests(unittest.TestCase):
         # Locks in corpus coverage: these (machine, endianness, elf_class)
         # combos make up the bulk of a real mirai-family sample set. Each
         # should resolve to at least one Bootlin-sysroot archive recipe.
-        catalog = Path(__file__).resolve().parents[1] / "catalogs" / "default.toml"
-        recipes = load_recipes(catalog)
+        root = Path(__file__).resolve().parents[1]
+        recipes = load_cells(root / "toolchains" / "registry.toml", root / "recipes" / "libs")
         combos = [
             ("ARM", "little", 32),
             ("MIPS", "big", 32),

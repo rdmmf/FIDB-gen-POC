@@ -1,12 +1,17 @@
-"""Select and prepare checksum-pinned libc/toolchain candidates from a TOML
-catalog.
+"""Select and prepare checksum-pinned libc/toolchain candidates ("cells").
 
-Unlike recipes/*.json (config.py), a catalog recipe bakes in its own target
-architecture -- there is no separate Route to apply, the recipe *is* the
-route. That's a genuinely different shape from the Library/Route/Treatment
-matrix (one recipe covers one fixed (machine, endianness, elf_class)), so
-this stays a parallel, self-contained subsystem rather than being forced
-into config.Library. Ported from compile-stdlib-poc's candidates.py.
+A cell bakes in its own target architecture -- there is no separate Route to
+apply, the cell *is* the route. That's a genuinely different shape from the
+Library/Route/Treatment matrix (one cell covers one fixed (machine,
+endianness, elf_class)), so this stays a parallel, self-contained subsystem
+rather than being forced into config.Library. Ported from
+compile-stdlib-poc's candidates.py.
+
+Cells come from two places, both TOML, both loaded by their own module:
+toolchain_registry.load_toolchains() for mode="archive" (direct prebuilt
+libc.a extraction) and recipe_generator.generate_cells() for mode="source"
+(VM-isolated cross-compile). This module only operates on already-loaded
+cell dicts -- see hunt.py for where the two lists are combined.
 """
 
 from __future__ import annotations
@@ -19,7 +24,6 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import tomllib
 from urllib.request import Request, urlopen
 
 from .elf import ghidra_language
@@ -28,53 +32,9 @@ from .investigate import Investigation
 log = logging.getLogger(__name__)
 
 
-COMMON_RECIPE_FIELDS = {"family", "version", "variant", "machine", "endianness", "elf_class", "mode"}
-ARCHIVE_RECIPE_FIELDS = COMMON_RECIPE_FIELDS | {"url", "sha256", "library_member"}
-SOURCE_RECIPE_FIELDS = COMMON_RECIPE_FIELDS | {
-    "source_url", "source_sha256",
-    "toolchain_url", "toolchain_sha256",
-    "vm_iso_url", "vm_iso_sha256",
-    "arch", "cross_bin_prefix", "library_path",
-}
-REQUIRED_RECIPE_FIELDS_BY_MODE = {"archive": ARCHIVE_RECIPE_FIELDS, "source": SOURCE_RECIPE_FIELDS}
-
-
 def _digest(value: object) -> str:
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
-
-
-def load_recipes(path: str | Path) -> list[dict[str, object]]:
-    catalog_path = Path(path)
-    recipes = tomllib.loads(catalog_path.read_text(encoding="utf-8")).get("recipes", [])
-    for recipe in recipes:
-        mode = recipe.get("mode")
-        required = REQUIRED_RECIPE_FIELDS_BY_MODE.get(mode)
-        if required is None:
-            raise ValueError(f"unsupported catalog recipe mode: {mode}")
-        missing = required - recipe.keys()
-        if missing:
-            raise ValueError(f"catalog recipe is missing: {', '.join(sorted(missing))}")
-        checksum_fields = ("sha256",) if mode == "archive" else (
-            "source_sha256", "toolchain_sha256", "vm_iso_sha256",
-        )
-        for field in checksum_fields:
-            checksum = str(recipe[field])
-            if len(checksum) != 64 or any(
-                character not in "0123456789abcdef" for character in checksum
-            ):
-                raise ValueError(
-                    f"invalid {field} for {recipe['family']} {recipe['version']}"
-                )
-        if "members_file" in recipe:
-            members = (catalog_path.parent / str(recipe["members_file"])).resolve()
-            recipe["members_file"] = str(members)
-            recipe["members_sha256"] = hashlib.sha256(members.read_bytes()).hexdigest()
-        if "patches" in recipe:
-            recipe["patches"] = [
-                str((catalog_path.parent / str(patch)).resolve()) for patch in recipe["patches"]
-            ]
-    return recipes
 
 
 def select_recipes(

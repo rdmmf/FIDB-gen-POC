@@ -124,9 +124,9 @@ class CommandLineTests(unittest.TestCase):
             shutil.copy(source_root / "worker.json", root / "worker.json")
             shutil.copytree(source_root / "recipes", root / "recipes")
             work_marker = root / "work/keep.txt"
-            output_marker = root / "output/keep.txt"
+            output_marker = root / "artifacts/libs/keep.txt"
             work_marker.parent.mkdir()
-            output_marker.parent.mkdir()
+            output_marker.parent.mkdir(parents=True)
             work_marker.write_text("keep", encoding="utf-8")
             output_marker.write_text("keep", encoding="utf-8")
             errors = io.StringIO()

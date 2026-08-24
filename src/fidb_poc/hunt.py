@@ -1,12 +1,12 @@
 """Unattended investigate -> select -> prepare -> match workflow.
 
 Ties together elf.py/investigate.py (target evidence), libc_catalog.py
-(catalog selection and object preparation) and ghidra_fid.py (in-process
+(cell selection and object preparation) and ghidra_fid.py (in-process
 analysis and FID matching) into one command. This is the "hunting" side of
 the repo -- secondary to recipe generation, but it reuses the exact same
 in-process Ghidra session machinery as ghidra_fid.build_library_fidb, so a
-catalog recipe and a library recipe are matched/built through one Ghidra
-session lifecycle either way.
+libc cell and a library recipe are matched/built through one Ghidra session
+lifecycle either way.
 """
 
 from __future__ import annotations
@@ -20,10 +20,29 @@ import shutil
 
 from . import ghidra_fid
 from .investigate import investigate
-from .libc_catalog import load_recipes, prepare_recipe, select_recipes
+from .libc_catalog import prepare_recipe, select_recipes
 from .pipeline import find_ghidra, ghidra_environment
+from .recipe_generator import generate_cells
+from .recipe_generator import load_recipes as load_source_recipes
+from .toolchain_registry import load_toolchains
 
 log = logging.getLogger(__name__)
+
+
+def load_cells(
+    toolchains: str | Path, recipes: str | Path
+) -> list[dict[str, object]]:
+    """Every hunt candidate: archive-capable toolchain rows used directly,
+    plus every recipe fanned out across its matching toolchain rows.
+
+    Same registry backs both -- a row with url/sha256/library_member is
+    already a self-contained mode="archive" cell (toolchain_registry.py
+    tags it as such), no recipe required.
+    """
+    toolchain_rows = load_toolchains(toolchains)
+    archive_cells = [row for row in toolchain_rows if row.get("mode") == "archive"]
+    source_cells = generate_cells(load_source_recipes(recipes), toolchain_rows)
+    return archive_cells + source_cells
 
 
 def _select_objects(guess: dict[str, object]) -> list[Path]:
@@ -42,7 +61,8 @@ def _select_objects(guess: dict[str, object]) -> list[Path]:
 
 def hunt(
     target: str | Path,
-    catalog: str | Path = "catalogs/default.toml",
+    toolchains: str | Path = "toolchains/registry.toml",
+    recipe_dir: str | Path = "recipes/libs",
     work: str | Path = "work/hunt",
     report: str | Path | None = None,
     maximum: int = 8,
@@ -56,8 +76,8 @@ def hunt(
 
     evidence = investigate(target_path)
     facts = evidence.target
-    recipes = select_recipes(evidence, load_recipes(catalog), requested)
-    if not recipes:
+    candidates = select_recipes(evidence, load_cells(toolchains, recipe_dir), requested)
+    if not candidates:
         suffix = f" for {', '.join(requested)}" if requested else ""
         raise ValueError(f"no compatible catalog candidates{suffix}")
     if not facts.ghidra_language_hint:
@@ -76,11 +96,11 @@ def hunt(
         target_path, work_path / "targets", f"target-{target_id}", facts.ghidra_language_hint,
     )
 
-    log.info("investigated %s -> %d compatible candidate(s)", target_path, len(recipes))
+    log.info("investigated %s -> %d compatible candidate(s)", target_path, len(candidates))
     attempts = []
-    for index, recipe in enumerate(recipes[:maximum], start=1):
+    for index, recipe in enumerate(candidates[:maximum], start=1):
         label = f'{recipe["family"]} {recipe["version"]} {recipe.get("variant")}'
-        log.info("[%d/%d] trying candidate: %s", index, min(maximum, len(recipes)), label)
+        log.info("[%d/%d] trying candidate: %s", index, min(maximum, len(candidates)), label)
         guess = prepare_recipe(recipe, work_path, work_path / "downloads")
         objects = _select_objects(guess)
         digest = str(guess["recipe_digest"])[:12]
@@ -145,7 +165,8 @@ def hunt(
         "investigation": evidence.to_dict(),
         "attempts": attempts,
         "matched": any(item["assessment"]["unambiguous_match_count"] for item in attempts),
-        "catalog": str(Path(catalog)),
+        "toolchains": str(Path(toolchains)),
+        "recipes": str(Path(recipe_dir)),
         "report": str(report_path),
         "fidbs": exported,
     }

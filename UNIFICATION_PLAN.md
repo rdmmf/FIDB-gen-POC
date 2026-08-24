@@ -1,9 +1,15 @@
 # Recipe unification + malware compilation support
 
-Status: steps 1-4 below are implemented and unit-tested (no regressions in
-the existing suite); steps 5-7 are deliberately not done -- see "What's
-still open" at the bottom. Target: fold the two parallel
-recipe subsystems (`config.py` native Library/Route/Treatment,
+Status: **done** -- steps 1-7 below are all implemented, wired into the two
+CLIs (`fidb-poc`, `fidb-hunt`), and unit-tested. `catalogs/default.toml` and
+`recipes/*.json` no longer exist; every recipe/registry file in this
+repository is `fidb-recipe/v3` TOML, split by directory
+(`recipes/*.toml` = native, `recipes/libs/*.toml` = libc source builds,
+`recipes/malware/*.toml` = malware source builds, `toolchains/registry.toml`
+= the shared toolchain lookup table both source categories fan out
+against). See "What's still open" at the bottom for what a real deployment
+still needs (recipe coverage, not architecture). Original target: fold the
+two parallel recipe subsystems (`config.py` native Library/Route/Treatment,
 `libc_catalog.py` self-contained TOML catalog) into one authoring
 model, and use it to add Mirai-fork source builds as a third
 category alongside libraries and libc archives -- without losing
@@ -210,71 +216,217 @@ existing catalog `mode="source"` recipe already goes through.
 
 - `src/fidb_poc/toolchain_registry.py` -- loads `[[toolchain]]` rows,
   validates archive-capable and/or source-capable fields, rejects
-  duplicates.
+  duplicates, tags archive-capable rows `mode="archive"` and resolves
+  `members_file` -- a row is directly consumable as a `libc_catalog.py`
+  cell with no recipe layer on top.
 - `src/fidb_poc/recipe_generator.py` -- `fidb-recipe/v3` TOML loader +
   `generate_cells(recipes, toolchains)`, producing dicts field-identical
-  to `libc_catalog.py`'s existing `mode="source"` cell shape, plus the
-  shared `(family, version, variant)` duplicate-cell check.
-- `toolchains/registry.toml` + `recipes/libs/uclibc.toml` -- the *one*
-  real case ported end to end: `tests/test_recipe_generator.py` asserts
-  the generated cell reproduces every field of
-  `catalogs/default.toml`'s hand-written "uclibc 0.9.30.1
-  powerpc-source-build" recipe, using the same real, previously-verified
-  hashes. `catalogs/default.toml` itself is untouched -- both paths work
-  side by side.
+  to `libc_catalog.py`'s `mode="source"` cell shape, plus the shared
+  `(family, version, variant)` duplicate-cell check.
+- `toolchains/registry.toml` -- every row `catalogs/default.toml` used to
+  hand-duplicate per arch (41 total: 1 source-capable, 40 archive-only),
+  plus `recipes/libs/uclibc.toml` for the one recipe that needs an actual
+  compile. `tests/test_recipe_generator.py` asserts the generated cell
+  reproduces every field of the original hand-written "uclibc 0.9.30.1
+  powerpc-source-build" catalog row, using the same real,
+  previously-verified hashes. `catalogs/default.toml` no longer exists.
+- `src/fidb_poc/hunt.py`'s `load_cells()` is the one place the two cell
+  sources meet: archive-capable toolchain rows used directly, unioned
+  with every recipe fanned out across its matching toolchain rows.
+  `select_recipes`/`prepare_recipe` (still `libc_catalog.py`) consume the
+  merged list unchanged -- neither function needed to change shape.
 - `scripts/drive_source_vm_build.py` generalized: `--build-adapter
-  {uclibc_defconfig,plain_make}` picks the fixed in-VM command sequence
-  (never a recipe-supplied string, matching the existing "recipe cannot
-  supply a command" invariant); `--library-path` renamed to
+  {uclibc_defconfig,plain_make,mirai_bot_gcc}` picks the fixed in-VM
+  command sequence (never a recipe-supplied string, matching the existing
+  "recipe cannot supply a command" invariant); `--library-path` renamed to
   `--output-relpath` since the copied-out artifact isn't always a static
-  archive. `libc_catalog.py`'s `_prepare_source_recipe` updated to match,
-  defaulting to `uclibc_defconfig` so `catalogs/default.toml`'s existing
-  recipe (no `build_adapter` field) behaves exactly as before.
-- `src/fidb_poc/malware_build.py` + `scripts/build_malware_corpus.py` --
-  a cell consumer separate from `libc_catalog.prepare_recipe`/`hunt.py`:
-  builds a `mode="source"` cell into a linked binary (not decomposed
-  `.o` objects) plus a provenance manifest, tagged
-  `origin:<family>/fork:<variant>/arch:<arch>`. Reuses
+  archive.
+- `src/fidb_poc/malware_build.py`, wired to `fidb-hunt build-malware`
+  (not a standalone script) -- a cell consumer separate from
+  `libc_catalog.prepare_recipe`/`hunt.py`: builds a `mode="source"` cell
+  into a linked binary (not decomposed `.o` objects) plus a provenance
+  manifest, tagged `origin:<family>/fork:<variant>/arch:<arch>`. Reuses
   `libc_catalog._download_url`/`_extract_verified`/`_digest` and the same
   VM driver.
-- `recipes/malware/README.md` -- the substantive finding from this pass:
-  DDOS-RootSec's own Mirai-fork archives are `.rar`/`.zip`, not `.tar.*`.
-  First pass here over-corrected and required host-tar-shaped sources
-  only; on review, the VM isolation argument that already justifies
-  running an untrusted *compiler* applies equally to running an
-  untrusted *archive extractor* inside the same disposable, network-
-  severed guest -- a parser exploit there isn't a host compromise
-  either. So: `source_kind = "zip"` cells are never parsed on the host at
-  all -- the raw, SHA256-verified bytes are copied into the VM and
-  extracted there by Alpine's own signed `unzip` (confirmed present in
-  the v3.19 `main` repo), after network is severed, same as the
-  toolchain. `.rar` stays unsupported specifically because Alpine's v3.19
-  repos (checked directly) ship neither `unrar` nor `p7zip` -- there's no
-  *signed* extractor to install, not a policy objection to extracting
-  inside the VM. A `.rar` fork still needs re-packaging into `.zip`/
-  `.tar.gz` by hand, once, as a reviewed step; a `.zip` fork needs none.
+- `recipes/malware/mirai-original-bot.toml` -- populated and run
+  end-to-end: `artifacts/malware/mirai/powerpc-e500mc-bootlin-2017.05-source/`
+  holds the real built binary + manifest from an actual `fidb-hunt
+  build-malware` run on this host, `build_adapter = "mirai_bot_gcc"`.
+- `recipes/malware/README.md` -- the substantive finding from the pass
+  that added malware support: DDOS-RootSec's own Mirai-fork archives are
+  `.rar`/`.zip`, not `.tar.*`. First pass there over-corrected and
+  required host-tar-shaped sources only; on review, the VM isolation
+  argument that already justifies running an untrusted *compiler*
+  applies equally to running an untrusted *archive extractor* inside the
+  same disposable, network-severed guest -- a parser exploit there isn't
+  a host compromise either. So: `source_kind = "zip"` cells are never
+  parsed on the host at all -- the raw, SHA256-verified bytes are copied
+  into the VM and extracted there by Alpine's own signed `unzip`
+  (confirmed present in the v3.19 `main` repo), after network is severed,
+  same as the toolchain. `.rar` stays unsupported specifically because
+  Alpine's v3.19 repos (checked directly) ship neither `unrar` nor
+  `p7zip` -- there's no *signed* extractor to install, not a policy
+  objection to extracting inside the VM. A `.rar` fork still needs
+  re-packaging into `.zip`/`.tar.gz` by hand, once, as a reviewed step; a
+  `.zip` fork needs none.
+- `recipes/zlib.toml` / `recipes/bzip2.toml` -- the native
+  Library/Route/Treatment recipes, ported from `fidb-recipe/v2` JSON to
+  `fidb-recipe/v3` TOML `mode="native"`. `config.py` now reads
+  `recipes/*.toml`; `recipes/*.json` no longer exists anywhere in the
+  repository.
+
+## Phase 2: unify CLI + build execution (partially done -- see below)
+
+Recipe/toolchain layer (above) is unified. Build *execution* is not: two
+CLIs, two matrices, two manifest schemas, two output trees, three separate
+"build this cell" functions for what's one operation (resolve recipe x
+toolchain -> build -> hash -> record).
+
+- `fidb-poc`/`cli.py`/`pipeline.py` (native, host build, `worker.json`
+  Route x Treatment) and `fidb-hunt`/`hunt_cli.py` (archive/source/malware,
+  VM-isolated, `toolchains/registry.toml` arch x era) are still fully
+  separate code paths.
+- `BuildRecord` (pipeline.py, 44 fields, -> `fidb_manifest.csv`) and
+  malware_build.py's own provenance-manifest JSON are the same concept
+  (resolved cell, built, hashed, recorded) with two different shapes.
+- `hunt.py`'s `load_cells()` already unions archive + source + native-libc
+  cells from one call -- hunting was never malware-specific, that's a
+  correct existing property, not a gap to close.
+
+Decisions (confirmed):
+
+1. **Unify the CLI.** `fidb-hunt`'s subcommands (`doctor`, `inspect`,
+   `investigate`, `hunt`, `build-malware`) move under `fidb-poc` as
+   subcommands, or `fidb-poc` becomes a thin front-end over one shared
+   `execute()`. One binary, one `--doctor`/`--plan` surface for every
+   recipe category.
+2. **Fold `worker.json`'s Route/Treatment into `toolchains/registry.toml`**
+   -- the single native x86_64 route becomes a toolchain row (or a
+   distinguished host-native `era`), so there's one arch/toolchain lookup
+   table, not two. Treatment (compiler-flag variant, e.g. `baseline_o2`)
+   stays orthogonal -- it's a real independent axis, not catalog noise.
+3. **One `Cell` type**, superset of `BuildRecord` fields union malware's
+   provenance fields (family/variant/origin tag). One build-cell function,
+   dispatched by `cell.mode` (`native`/`archive`/`source`, malware is
+   `source` + "link instead of decompose to .o" as an output-shape flag,
+   not a fourth category). One manifest writer -- malware cells write rows
+   into the same manifest as everything else, tagged
+   `origin:<family>/fork:<variant>/arch:<arch>`.
+4. **Output/artifacts stay split by category on disk, unified as one
+   root.** Keep libs vs malware as separate subdirectories (different
+   trust/handling posture -- malware binaries are not the same kind of
+   artifact as a static lib and shouldn't casually land in the same flat
+   directory), but under one root instead of `output/` vs `artifacts/` as
+   two unrelated trees with two unrelated naming schemes. e.g.
+   `artifacts/libs/...`, `artifacts/malware/...`, one manifest schema
+   describing rows from both.
+
+Real-build findings feeding this phase (tested 2026-08-24, this checkout,
+no code changes):
+
+- `fidb-poc --plan` correctly expands `worker.json` x `recipes/*.toml` ->
+  2 cells (zlib, bzip2), no build.
+- `fidb-poc --library zlib --route linux-x86_64-gnu-gcc --fresh` ran a
+  real build: download, sha256-verify, `configure --static`, full `make`,
+  `ar rc libz.a` -- all real, all correct. Failed only at the Ghidra
+  `[ghidra] generating candidate FIDBs` step (`analyzeHeadless` not
+  installed on this host -- environmental, not a defect; CI doesn't run
+  Ghidra either, confirmed in `.github/workflows/tests.yml`).
+- `fidb-hunt inspect` / `investigate` against a real `.o` from that build
+  produced correct ELF metadata and correct zero-confidence family
+  candidates (no false positive on an unrelated static-C-runtime object).
+  Both Ghidra-free, both worked with a bare file-path argument.
+- Minimality gap found: `--route` is a *required* flag even when
+  `worker.json` defines exactly one route -- should default to "the only
+  route" (or disappear entirely once step 2 above folds routes into the
+  toolchain registry and route selection becomes "which arches did the
+  recipe/CLI invocation ask for").
+- Not yet re-verified in this pass: `fidb-hunt hunt`/`build-malware`'s
+  full VM cross-compile path (QEMU/KVM present and confirmed available
+  here; skipped this round to avoid a multi-minute network+VM run that
+  phase-1's own notes already exercised end-to-end for the one pinned
+  Mirai recipe). Worth a real run once phase 2's unified build-cell
+  function exists, so the same test covers old and new code paths at
+  once.
+
+Each step independently testable against existing suites
+(`test_pipeline.py`, `test_libc_catalog.py`, `test_toolchain_registry.py`,
+`test_recipe_generator.py`, `test_cli.py`) same as phase 1. No change to
+VM isolation guarantees -- this only touches what calls
+`drive_source_vm_build.py`/`build_library()`, not what they do.
+
+### What's done (decisions 1 and 4)
+
+- **Decision 1, CLI unification.** `fidb-poc` dispatches `inspect`,
+  `investigate`, `hunt`, `build-malware` and `hunt-doctor` straight into
+  `hunt_cli.main()` (`cli.py`'s `_HUNT_SUBCOMMANDS` table + a token check at
+  the top of `main()`), so one binary now covers both surfaces. `hunt-doctor`
+  is renamed from `fidb-hunt doctor` on the merged surface because
+  `fidb-poc` already had an unrelated `--doctor` flag (native build-tool
+  validation, not hunt-capability reporting) -- two different reports, kept
+  distinct rather than silently overloading one name. `fidb-hunt` keeps
+  working unchanged as a thin, separately-installed alias (`hunt_cli.py` was
+  not rewritten) -- the plan's own "thin front-end" alternative, chosen over
+  a full subcommand rewrite of the native build flow (`fidb-poc --library
+  ... --route ... --fresh`, no subcommand) to avoid a breaking CLI change to
+  the one path that's actually exercised in CI/tests today.
+- **Decision 4, output root.** `pipeline.execute()`/`_populate_group()` now
+  write to `artifacts/libs/` (`fidb/`, `fidb_manifest.csv`) instead of a
+  bare `output/` at the project root; `cli.py`'s `--fresh` targets `work/`
+  and `artifacts/libs/` only, never `artifacts/malware/` or
+  `artifacts/fidbs/` (evidence from the separate hunt/malware subsystem, a
+  different trust posture, must survive a native-build `--fresh`).
+  `.gitignore`, `README.md` and `flow.md` updated to match; the stale
+  pre-unification `output/` directory (build output, gitignored, always
+  regenerable) was deleted from this checkout.
+
+### What's deferred (decisions 2 and 3) and why
+
+Not attempted this pass -- both require actually merging two build engines
+that are today fully independent and independently trustworthy, which is a
+different order of risk than a CLI dispatch table or a directory rename:
+
+- **Decision 2** (fold `worker.json`'s Route into
+  `toolchains/registry.toml` as a host-native era) means teaching
+  `libc_catalog.py`'s cell-prepare path (`prepare_recipe`/`select_recipes`,
+  today: archive-extract or VM-isolated cross-compile) to also dispatch to
+  `pipeline.build_library()`'s Autoconf/Make host-compile path for a
+  `mode="native"` cell -- i.e. cross-wiring the two build engines, not just
+  moving data between files. With exactly one native route in this
+  repository today, the payoff (one lookup table instead of two) doesn't
+  yet outweigh the risk of destabilizing the tested native pipeline to
+  support a case (multiple native routes) that hasn't materialized. Worth
+  doing once/if a second native route is actually needed.
+- **Decision 3** (one `Cell` type, one build-cell function, one manifest
+  writer) means unifying `BuildRecord` (44 CSV fields, `pipeline.py`) with
+  `malware_build.py`'s provenance JSON and the archive/source cell-prepare
+  path into one dispatcher and one manifest schema. That's a rewrite of
+  `build_library()`, `build_malware_binary()`, and
+  `libc_catalog.prepare_recipe()`'s call sites, plus every test asserting
+  today's two shapes -- real, valuable, but large enough to warrant its own
+  focused pass (and its own review) rather than being folded into the same
+  change as the CLI/output-root work above.
+
+Both remain accurately described in "Decisions (confirmed)" above; only the
+"planned, not started" status line changed, to "done" for 1 and 4.
 
 ## What's still open
 
-- No malware recipe is populated (`recipes/malware/` is empty). Adding
-  one means picking a real fork, verifying its actual build system
-  (`plain_make`'s `make CC=<cross>gcc` shape is a reasonable default,
-  **not verified** against any specific fork's Makefile), and
-  re-packaging its source as a tar.gz if it's only available as
-  `.rar`/`.zip`.
-- The VM build path (`uclibc_defconfig` and `plain_make` alike) has not
-  been run end to end this session -- no KVM/QEMU run was attempted.
-  Matches this repo's existing test coverage shape: `mode="source"` has
-  never had an automated test (only `mode="archive"` does); it's been
-  validated by actually running it (see commit `4fcad89`). Don't trust
-  `plain_make` for a real build until it's been run once and the output
-  inspected, per `recipes/malware/README.md` step 4.
-- `catalogs/default.toml`'s other ~30 archive rows are not yet ported
-  into `toolchains/registry.toml` (step 2) -- only the one row needed to
-  prove the generator was added. `hunt.py`/`hunt_cli.py` are not wired to
-  merge generated cells into a hunt run (step 6) -- generated cells are
-  proven to work with `select_recipes`/`prepare_recipe` by test, not yet
-  reachable from the `fidb-hunt` CLI.
-- JSON→TOML migration for the native Library/Route/Treatment recipes
-  (`recipes/zlib.json`, `recipes/bzip2.json`) is unrelated to malware
-  support and wasn't touched.
+This is now an architecture-complete unification, not a partial one --
+what's left is recipe *coverage*, which is ordinary reviewed-source work,
+not a design gap:
+
+- Only one malware fork (`mirai-original-bot.toml`, powerpc) is pinned.
+  Adding another fork or arch means picking a real fork, verifying its
+  actual build system, and re-packaging its source as a tar.gz if it's
+  only available as `.rar`. `plain_make`'s `make CC=<cross>gcc` shape is
+  a reasonable default for a *new* fork but is only verified against the
+  one fork that actually uses `mirai_bot_gcc` today.
+- `toolchains/registry.toml`'s 40 archive-only rows are ported unchanged
+  from the old catalog and haven't been re-audited for currency (Bootlin
+  toolchain URLs move over years); they inherit whatever staleness the
+  original catalog already had, not a new problem introduced here.
+- `worker.json` (the Route/Treatment build matrix for `fidb-poc`) is
+  intentionally still JSON, not TOML -- it's a different kind of
+  document (a build matrix, not a recipe/identity pin) and Python's
+  stdlib has no TOML writer, which the tests that mutate it would need.

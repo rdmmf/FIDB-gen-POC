@@ -1,6 +1,8 @@
 .venv/
 work/
-output/
+artifacts/libs/
+# compiled malware corpus never gets pushed -- fidb/fidbf output + recipes do
+artifacts/malware/
 dist/
 build/
 *.egg-info/
@@ -10,3 +12,4 @@ __pycache__/
 .idea/
 .pytest_cache/
 .coverage
+.claude/
