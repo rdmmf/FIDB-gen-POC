@@ -128,7 +128,7 @@ def hunt(
         matched = bool(assessment["unambiguous_match_count"])
         log.info("%s: %s (matched=%s)", label, "MATCH" if matched else "no match", matched)
         if matched:
-            break
+            pass # Do not break, find ALL statically linked functions
 
     exported = []
     export_dir = Path(fidb_dir)

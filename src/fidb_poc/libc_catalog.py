@@ -227,21 +227,23 @@ def _prepare_source_recipe(
         with Path(str(patch)).open("rb") as patch_file:
             subprocess.run(["patch", "-p1"], cwd=src_root, stdin=patch_file, check=True)
 
-    log.info("configuring: ARCH=%s CROSS=%s in %s", recipe["arch"], recipe["cross_bin_prefix"], src_root)
-    subprocess.run(
-        ["make", f"ARCH={recipe['arch']}", f"CROSS={recipe['cross_bin_prefix']}", "defconfig"],
-        cwd=src_root, check=True,
-    )
-    if "kernel_headers_relpath" in recipe:
-        headers = f"/root/toolchain/{recipe['kernel_headers_relpath']}"
+    build_adapter = recipe.get("build_adapter", "uclibc_defconfig")
+    if build_adapter == "uclibc_defconfig":
+        log.info("configuring: ARCH=%s CROSS=%s in %s", recipe["arch"], recipe["cross_bin_prefix"], src_root)
         subprocess.run(
-            ["sed", "-i", f's#^KERNEL_HEADERS=.*#KERNEL_HEADERS="{headers}"#', str(src_root / ".config")],
-            check=True,
+            ["make", f"ARCH={recipe['arch']}", f"CROSS={recipe['cross_bin_prefix']}", "defconfig"],
+            cwd=src_root, check=True,
         )
-    subprocess.run(
-        ["make", f"ARCH={recipe['arch']}", f"CROSS={recipe['cross_bin_prefix']}", "oldconfig"],
-        cwd=src_root, check=True, stdin=subprocess.DEVNULL,
-    )
+        if "kernel_headers_relpath" in recipe:
+            headers = f"/root/toolchain/{recipe['kernel_headers_relpath']}"
+            subprocess.run(
+                ["sed", "-i", f's#^KERNEL_HEADERS=.*#KERNEL_HEADERS="{headers}"#', str(src_root / ".config")],
+                check=True,
+            )
+        subprocess.run(
+            ["make", f"ARCH={recipe['arch']}", f"CROSS={recipe['cross_bin_prefix']}", "oldconfig"],
+            cwd=src_root, check=True, stdin=subprocess.DEVNULL,
+        )
 
     out_dir = vm_dir / "out"
     out_dir.mkdir(parents=True, exist_ok=True)

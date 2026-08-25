@@ -72,7 +72,7 @@ parser.add_argument("--payload-kind", choices=("zip",), help="required with --pa
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
 parser.add_argument(
     "--build-adapter",
-    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc"),
+    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl"),
     default="uclibc_defconfig",
 )
 parser.add_argument(
@@ -147,7 +147,7 @@ run("echo 'https://dl-cdn.alpinelinux.org/alpine/v3.19/main' > /etc/apk/reposito
 run("apk update", timeout=60)
 # gcompat: many prebuilt cross-toolchains ship glibc-linked x86_64 binaries;
 # Alpine is musl-based and has no glibc loader without it.
-packages = "make gcc musl-dev gcompat"
+packages = "make gcc musl-dev gcompat perl linux-headers"
 if args.payload_kind == "zip":
     packages += " unzip"
 run(f"apk add --no-cache {packages}", timeout=90)
@@ -211,6 +211,22 @@ elif args.build_adapter == "plain_make":
     build_command = (
         f"cd /root/build && make CC=/root/toolchain/{args.cross_bin_prefix}gcc "
         f"-j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
+elif args.build_adapter == "openssl":
+    print(">>> starting build (openssl ./Configure)", flush=True)
+    target = "linux-generic64" if "64" in args.arch else "linux-generic32"
+    build_command = (
+        f"cd /root/build && "
+        f"./Configure {target} no-shared --cross-compile-prefix=/root/toolchain/{args.cross_bin_prefix} "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
+    )
+    target = "linux-generic64" if "64" in args.arch else "linux-generic32"
+    build_command = (
+        f"cd /root/build && "
+        f"./Configure {target} no-shared --cross-compile-prefix=/root/toolchain/{args.cross_bin_prefix} "
+        f"> /root/config.log 2>&1 && "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
     )
 else:  # mirai_bot_gcc -- mirrors the compile_bot() function in the fork's
        # own mirai/build.sh: a direct gcc invocation, no Makefile
