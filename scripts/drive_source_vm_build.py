@@ -72,7 +72,7 @@ parser.add_argument("--payload-kind", choices=("zip",), help="required with --pa
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
 parser.add_argument(
     "--build-adapter",
-    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl"),
+    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl", "configure", "configure_zlib"),
     default="uclibc_defconfig",
 )
 parser.add_argument(
@@ -214,6 +214,24 @@ elif args.build_adapter == "plain_make":
     )
 elif args.build_adapter == "openssl":
     print(">>> starting build (openssl ./Configure)", flush=True)
+elif args.build_adapter == "configure":
+    print(">>> starting build (standard ./configure)", flush=True)
+elif args.build_adapter == "configure_zlib":
+    print(">>> starting build (zlib ./configure)", flush=True)
+    build_command = (
+        f"cd /root/build && "
+        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"./configure --static "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
+    )
+    build_command = (
+        f"cd /root/build && "
+        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"./configure --host={args.arch}-linux --disable-shared --without-ssl --without-zlib "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
+    )
     target = "linux-generic64" if "64" in args.arch else "linux-generic32"
     build_command = (
         f"cd /root/build && "

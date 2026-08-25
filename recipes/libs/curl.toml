@@ -1,0 +1,10 @@
+schema_version = "fidb-recipe/v3"
+mode = "source"
+name = "curl"
+version = "8.4.0"
+url = "https://curl.se/download/curl-8.4.0.tar.gz"
+sha256 = "16c62a9c4af0f703d28bda6d7bbf37ba47055ad3414d70dec63e98b7e4c2929c"
+library_path = "lib/.libs/libcurl.a"
+build_adapter = "configure"
+toolchain_family = "uclibc"
+toolchain_variants = []
