@@ -79,6 +79,7 @@ def _score(strings: tuple[str, ...]) -> int:
 
 
 def find_decodings(data: bytes, limit: int = 3) -> tuple[Decoding, ...]:
+    data = data[:500000]  # LIMIT SIZE for speed
     candidates: list[Decoding] = []
     for key in range(1, 256):
         strings = _decode_with_key(data, key)
