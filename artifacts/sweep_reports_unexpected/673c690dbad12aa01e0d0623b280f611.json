@@ -1,0 +1,469 @@
+{
+  "investigation": {
+    "target": {
+      "path": "/home/thomas/data/malware/mirai3/unpacked/673c690dbad12aa01e0d0623b280f611",
+      "sha256": "cb68850c52bc941b220989ecb4c1a83a30b564ca4963176f631bdf295d21dde8",
+      "size": 242076,
+      "elf_class": 32,
+      "endianness": "little",
+      "machine": "ARM",
+      "machine_id": 40,
+      "elf_type": 2,
+      "entry_point": "0x8194",
+      "flags": "0x4000002",
+      "statically_linked": true,
+      "stripped": false,
+      "interpreter": false,
+      "dynamic_segment": false,
+      "section_names": [
+        ".init",
+        ".text",
+        ".fini",
+        ".rodata",
+        ".ARM.extab",
+        ".ARM.exidx",
+        ".eh_frame",
+        ".tdata",
+        ".tbss",
+        ".init_array",
+        ".fini_array",
+        ".jcr",
+        ".got",
+        ".data",
+        ".bss",
+        ".comment",
+        ".debug_aranges",
+        ".debug_pubnames",
+        ".debug_info",
+        ".debug_abbrev",
+        ".debug_line",
+        ".debug_frame",
+        ".debug_str",
+        ".debug_loc",
+        ".debug_ranges",
+        ".ARM.attributes",
+        ".shstrtab",
+        ".symtab",
+        ".strtab"
+      ],
+      "string_indicators": [
+        "glibc",
+        "uclibc",
+        "gcc"
+      ],
+      "ghidra_language_hint": "ARM:LE:32:v7",
+      "cpu_specific_evidence": []
+    },
+    "decoded_strings": [
+      {
+        "encoding": "single-byte-xor",
+        "key": 34,
+        "score": 52,
+        "strings": [
+          "\"\"Bruh why again",
+          "\"/proc/",
+          "\"\"\"\"/proc/net/tcp",
+          "\"\"\"data/local",
+          "\"\"TSource Engine Query",
+          "\"\"\"/etc/resolv.conf",
+          "\"\"\"\"/dev/watchdog",
+          "\"\"/dev/misc/watchdog",
+          "\"/sbin/watchdog",
+          "\"/bin/watchdog",
+          "\"\"/dev/FTWDT101_watchdog",
+          "\"/dev/FTWDT101/watchdog",
+          "\"/dev/watchdog0",
+          "\"/etc/default/watchdog",
+          "\"\"/etc/watchdog",
+          "\"\"\"/proc/net/route",
+          "\"\"\"\"/proc/cpuinfo",
+          "\"/dev/netslink/",
+          "\"\"\"Connection: keep-alive",
+          "\"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "\"Accept-Language: en-US,en;q=0.8",
+          "\"\"\"\"Content-Type: application/x-www-form-urlencoded",
+          "\"\"\"\"content-length:",
+          "\"\"\"\"transfer-encoding:",
+          "\"\"\"\"server: dosarrest",
+          "\"\"server: cloudflare-nginx",
+          "\"\"\"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",
+          "\"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36",
+          "\"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",
+          "\"\"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36",
+          "\"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7",
+          "\"\"\"Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 5.1; Trident/5.0)",
+          "\"\"\"\"Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.0; Trident/4.0; GTB7.4; InfoPath.3; SV1; .NET CLR 3.4.53360; WOW64; en-US)",
+          "\"Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/4.0; FDM; MSIECrawler; Media Center PC 5.0)",
+          "\"Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/4.0; GTB7.4; InfoPath.2; SV1; .NET CLR 4.4.58799; WOW64; en-US)",
+          "\"Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0; FunWebProducts)",
+          "\"\"\"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:25.0) Gecko/20100101 Firefox/25.0",
+          "\"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:21.0) Gecko/20100101 Firefox/21.0",
+          "\"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:24.0) Gecko/20100101 Firefox/24.0",
+          "\"\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10; rv:33.0) Gecko/20100101 Firefox/33.0",
+          "\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94",
+          "\"\"\"dkaowjfirhiad1j3edjkai"
+        ]
+      },
+      {
+        "encoding": "single-byte-xor",
+        "key": 32,
+        "score": 40,
+        "strings": [
+          "SERVICE\rAGENT '",
+          ")tEAMsPEAK                    *wINDOWS",
+          "XSVR  \"   m\rsearch",
+          "x 000(*** HLlJZTQz \"$((  (  !( ?%  /'(\" $ ! #  0%   ' \" $ ! #  !'/01235 ( % # $ !  \"   $ (\" ' '( !!!$\"!!!!!!  NPXxOUDIFfEeGgAacsCS    ",
+          "  sUCCESS oPERATION",
+          "PROCESS iNTERRUPTED",
+          "SYSTEM",
+          "ADDRESS aRGUMENT",
+          "LONG eXEC",
+          "PROCESSES rESOURCE",
+          "UNAVAILABLE cANNOT",
+          "MEMORY pERMISSION",
+          "ADDRESS bLOCK",
+          "REQUIRED dEVICE",
+          "BUSY fILE",
+          "EXISTS iNVALID",
+          "CROSS\rDEVICE",
+          "DIRECTORY iNVALID",
+          "SYSTEM tOO",
+          "FILES iNAPPROPRIATE",
+          "DEVICE tEXT",
+          "BUSY fILE",
+          "DEVICE iLLEGAL",
+          "SEEK rEAD\rONLY",
+          "SYSTEM tOO",
+          "LINKS bROKEN",
+          "PIPE nUMERICAL",
+          "DOMAIN nUMERICAL",
+          "RANGE rESOURCE",
+          "AVOIDED fILE",
+          "AVAILABLE fUNCTION",
+          "IMPLEMENTED dIRECTORY",
+          "TYPE iDENTIFIER",
+          "REMOVED cHANNEL",
+          "RANGE lEVEL",
+          "SYNCHRONIZED lEVEL",
+          "HALTED lEVEL",
+          "RESET lINK",
+          "RANGE pROTOCOL",
+          "AVAILABLE lEVEL",
+          "HALTED iNVALID",
+          "EXCHANGE iNVALID",
+          "DESCRIPTOR eXCHANGE",
+          "ANODE iNVALID",
+          "CODE iNVALID",
+          "FORMAT dEVICE",
+          "AVAILABLE tIMER",
+          "RESOURCES mACHINE",
+          "NETWORK pACKAGE",
+          "INSTALLED oBJECT",
+          "REMOTE lINK",
+          "SEVERED aDVERTISE",
+          "ERROR sRMOUNT",
+          "ERROR cOMMUNICATION",
+          "SEND pROTOCOL",
+          "ERROR mULTIHOP",
+          "MESSAGE vALUE",
+          "TYPE nAME",
+          "NETWORK fILE",
+          "STATE rEMOTE",
+          "LIBRARY aCCESSING",
+          "CORRUPTED aTTEMPTING",
+          "LIBRARIES cANNOT",
+          "DIRECTLY iNVALID",
+          "CHARACTER iNTERRUPTED",
+          "SYSTEM",
+          "RESTARTED sTREAMS",
+          "USERS sOCKET",
+          "NON\rSOCKET dESTINATION",
+          "REQUIRED mESSAGE",
+          "LONG pROTOCOL",
+          "SOCKET pROTOCOL",
+          "AVAILABLE pROTOCOL",
+          "SUPPORTED sOCKET",
+          "SUPPORTED oPERATION",
+          "SUPPORTED pROTOCOL",
+          "SUPPORTED aDDRESS",
+          "PROTOCOL aDDRESS",
+          "ADDRESS nETWORK",
+          "DOWN nETWORK"
+        ]
+      }
+    ],
+    "insights": [
+      "Detected single-byte-xor strings with key 0x22 (evidence score 52).",
+      "Decoded watchdog device paths indicate embedded Linux persistence handling.",
+      "Static linkage makes the C runtime the highest-value initial FID family."
+    ],
+    "hypotheses": [
+      {
+        "family": "c-runtime",
+        "confidence": "high",
+        "disposition": "build",
+        "reason": "The static target references libc but exposes no runtime identity; bounded uClibc, musl, and glibc variants can discriminate it.",
+        "candidate_packages": [
+          "uclibc",
+          "musl",
+          "glibc"
+        ]
+      },
+      {
+        "family": "compiler-runtime",
+        "confidence": "low",
+        "disposition": "build-after-c-runtime",
+        "reason": "A static C executable normally embeds compiler support routines, but .comment is absent.",
+        "candidate_packages": [
+          "libgcc"
+        ]
+      },
+      {
+        "family": "zlib",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "openssl",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "mbedtls",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "libcurl",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "libpcap",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": {
+        "family": "uclibc",
+        "version": "1.0.24",
+        "variant": "arm-bootlin-sysroot",
+        "language": "ARM:LE:32:v7",
+        "objects": "work/hunt/prepared/cd95b29d3d730f40/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "cd95b29d3d730f40a182857b8fd79a98c049f2dd3ed4d5133349b8d1e9af144a",
+        "source_url": "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--uclibc--stable-2017.05-toolchains-1-1.tar.bz2",
+        "source_sha256": "9afe6d92b2fdb5eee75c90f776374d19aa1203d5679651b289a4030dc9982036"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/cd95b29d3d73/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "uclibc",
+        "version": "0.9.30",
+        "variant": "armv5l-fwl",
+        "language": "ARM:LE:32:v7",
+        "objects": "work/hunt/prepared/a6719b8dc88fabb7/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "a6719b8dc88fabb794e84f554ddc9aac5f4df7788479d94ba40130a751a9827d",
+        "source_url": "https://raw.githubusercontent.com/R00tS3c/DDOS-RootSec/master/uclib-cross-compilers/cross-compiler-armv5l.tar.bz2",
+        "source_sha256": "a5ae9ba0842821fb2d9f7e0b54d3ad23898a1813ae918511bc14fa2de4fe3b35"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/a6719b8dc88f/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 2,
+        "match_count": 2,
+        "unambiguous_match_count": 2,
+        "unambiguous_matches": [
+          {
+            "address": "00022170",
+            "name": "memset",
+            "score": 40.720001220703125,
+            "full_hash": "766d926cfb4bad75",
+            "specific_hash": "bae1f09aecac6c0d",
+            "library": "uclibc",
+            "version": "0.9.30",
+            "variant": "armv5l-fwl"
+          },
+          {
+            "address": "00022230",
+            "name": "strlen",
+            "score": 38.06999969482422,
+            "full_hash": "d22422380bdfbaf6",
+            "specific_hash": "d8a3ddcc36df73d4",
+            "library": "uclibc",
+            "version": "0.9.30",
+            "variant": "armv5l-fwl"
+          }
+        ],
+        "matches": [
+          {
+            "address": "00022170",
+            "name": "memset",
+            "score": 40.720001220703125,
+            "full_hash": "766d926cfb4bad75",
+            "specific_hash": "bae1f09aecac6c0d",
+            "library": "uclibc",
+            "version": "0.9.30",
+            "variant": "armv5l-fwl"
+          },
+          {
+            "address": "00022230",
+            "name": "strlen",
+            "score": 38.06999969482422,
+            "full_hash": "d22422380bdfbaf6",
+            "specific_hash": "d8a3ddcc36df73d4",
+            "library": "uclibc",
+            "version": "0.9.30",
+            "variant": "armv5l-fwl"
+          }
+        ]
+      }
+    },
+    {
+      "guess": {
+        "family": "uclibc",
+        "version": "1.0.34",
+        "variant": "arm-bootlin-sysroot-2020.08",
+        "language": "ARM:LE:32:v7",
+        "objects": "work/hunt/prepared/96b3638e0b94d123/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "96b3638e0b94d123f58765f958761bb9786ef05abfdefcd8e19a26db1222a2d9",
+        "source_url": "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--uclibc--stable-2020.08-1.tar.bz2",
+        "source_sha256": "cf6a668d4f30a4a2e76a0e88177e1301342cc011e94ea399353e77ede0efbb22"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/96b3638e0b94/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "openssl",
+        "version": "1.1.1w",
+        "variant": "arm-bootlin-sysroot-2020.08-source",
+        "language": "ARM:LE:32:v7",
+        "objects": "work/hunt/prepared/0dd6ed37566bc486/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "0dd6ed37566bc4862d2aac242a5c864ad556df1c21f69149156703cde6091c5c",
+        "source_url": "https://www.openssl.org/source/openssl-1.1.1w.tar.gz",
+        "source_sha256": "cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/0dd6ed37566b/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "curl",
+        "version": "8.4.0",
+        "variant": "arm-bootlin-sysroot-2020.08-source",
+        "language": "ARM:LE:32:v7",
+        "objects": "work/hunt/prepared/73d984f7a7eefae5/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "73d984f7a7eefae5f7513129df1c1bcbc57d7e83807f5b80199c08133234103d",
+        "source_url": "https://curl.se/download/curl-8.4.0.tar.gz",
+        "source_sha256": "816e41809c043ff285e8c0f06a75a1fa250211bbfb2dc0a037eeef39f1a9e427"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/73d984f7a7ee/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "zlib",
+        "version": "1.3",
+        "variant": "arm-bootlin-sysroot-2020.08-source",
+        "language": "ARM:LE:32:v7",
+        "objects": "work/hunt/prepared/d7735fe7627355f2/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "d7735fe7627355f2efa3ca112caa86ccafef3b5108615fb8e4cc568b782bb0ae",
+        "source_url": "https://zlib.net/fossils/zlib-1.3.tar.gz",
+        "source_sha256": "ff0ba4c292013dbc27530b3a81e1f9a813cd39de01ca5e0f8bf355702efa593e"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/d7735fe76273/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    }
+  ],
+  "matched": true,
+  "toolchains": "toolchains/registry.toml",
+  "recipes": "recipes/libs",
+  "report": "artifacts/sweep_reports_unexpected/673c690dbad12aa01e0d0623b280f611.json",
+  "fidbs": [
+    {
+      "family": "uclibc",
+      "version": "0.9.30",
+      "variant": "armv5l-fwl",
+      "fidb_path": "/home/thomas/github/FIDB-gen-POC/artifacts/fidbs/uclibc-0.9.30-armv5l-fwl-a6719b8dc88f.fidb",
+      "fidb_sha256": "db3d750f631b86735fa8f532e03517d3513ad8cdfcc7df9225b8e20920f4b32f",
+      "fidbf_path": "/home/thomas/github/FIDB-gen-POC/artifacts/fidbs/uclibc-0.9.30-armv5l-fwl-a6719b8dc88f.fidbf",
+      "fidbf_sha256": "f53d6374c2ef271f15ea7974ff7d8025fff738b4e6586268119152b9f59de33a",
+      "matched_functions": 2,
+      "unambiguous_matches": 2
+    }
+  ]
+}

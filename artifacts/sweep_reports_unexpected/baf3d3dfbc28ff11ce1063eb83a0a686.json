@@ -1,0 +1,252 @@
+{
+  "investigation": {
+    "target": {
+      "path": "/home/thomas/data/malware/mirai3/unpacked/baf3d3dfbc28ff11ce1063eb83a0a686",
+      "sha256": "1a236d5084671562e6560287e3bf5fd7660c2a06d017e29e4b9144117fb600d5",
+      "size": 719264,
+      "elf_class": 64,
+      "endianness": "little",
+      "machine": "AArch64",
+      "machine_id": 183,
+      "elf_type": 2,
+      "entry_point": "0x400d80",
+      "flags": "0x0",
+      "statically_linked": true,
+      "stripped": true,
+      "interpreter": false,
+      "dynamic_segment": false,
+      "section_names": [
+        ".rela.plt",
+        ".init",
+        ".plt",
+        ".text",
+        ".fini",
+        ".rodata",
+        ".gcc_except_table",
+        ".tdata",
+        ".tbss",
+        ".init_array",
+        ".fini_array",
+        ".data.rel.ro",
+        ".got",
+        ".data",
+        "__libc_IO_vtables",
+        "__libc_atexit",
+        ".bss",
+        "__libc_freeres_ptrs",
+        ".shstrtab"
+      ],
+      "string_indicators": [
+        "glibc",
+        "gcc"
+      ],
+      "ghidra_language_hint": "AARCH64:LE:64:v8A",
+      "cpu_specific_evidence": []
+    },
+    "decoded_strings": [],
+    "insights": [
+      "Static linkage makes the C runtime the highest-value initial FID family."
+    ],
+    "hypotheses": [
+      {
+        "family": "c-runtime",
+        "confidence": "high",
+        "disposition": "build",
+        "reason": "The static target references libc but exposes no runtime identity; bounded uClibc, musl, and glibc variants can discriminate it.",
+        "candidate_packages": [
+          "uclibc",
+          "musl",
+          "glibc"
+        ]
+      },
+      {
+        "family": "compiler-runtime",
+        "confidence": "low",
+        "disposition": "build-after-c-runtime",
+        "reason": "A static C executable normally embeds compiler support routines, but .comment is absent.",
+        "candidate_packages": [
+          "libgcc"
+        ]
+      },
+      {
+        "family": "zlib",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "openssl",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "mbedtls",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "libcurl",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      },
+      {
+        "family": "libpcap",
+        "confidence": "none",
+        "disposition": "not-scheduled",
+        "reason": "No package-specific marker was observed; absence is not proof of exclusion.",
+        "candidate_packages": []
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": {
+        "family": "uclibc",
+        "version": "1.0.24",
+        "variant": "aarch64-bootlin-sysroot",
+        "language": "AARCH64:LE:64:v8A",
+        "objects": "work/hunt/prepared/75a6a0c250c3b616/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "75a6a0c250c3b6165e82c008e64f40b83bf4c7e69f8fe0a9f10b179681c37e56",
+        "source_url": "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--uclibc--stable-2017.05-toolchains-1-1.tar.bz2",
+        "source_sha256": "d4ad325339591b67b68db01b504e278638a8722f20376924755ae83363dcd013"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/75a6a0c250c3/library.fidb",
+      "build": {
+        "cached": 1
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "uclibc",
+        "version": "1.0.34",
+        "variant": "aarch64-bootlin-sysroot-2020.08",
+        "language": "AARCH64:LE:64:v8A",
+        "objects": "work/hunt/prepared/6502254c5300f78f/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "6502254c5300f78fef7fea7f87a70ecfbb96ba2509c9a37d0b8a87e5aac71e1a",
+        "source_url": "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--uclibc--stable-2020.08-1.tar.bz2",
+        "source_sha256": "04176f56ac977215c5257c307cece2d32e03770b96380e09c50379d4d84a5b39"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/6502254c5300/library.fidb",
+      "build": {
+        "programs": 1376,
+        "attempted": 1953,
+        "added": 1732,
+        "excluded": 221
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "openssl",
+        "version": "1.1.1w",
+        "variant": "aarch64-bootlin-sysroot-2020.08-source",
+        "language": "AARCH64:LE:64:v8A",
+        "objects": "work/hunt/prepared/7be2a5752ed7341c/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "7be2a5752ed7341c097f8ff4b01a599e1a3025ac0a8ce4a2496c6f8d179bdf32",
+        "source_url": "https://www.openssl.org/source/openssl-1.1.1w.tar.gz",
+        "source_sha256": "cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/7be2a5752ed7/library.fidb",
+      "build": {
+        "programs": 637,
+        "attempted": 6502,
+        "added": 4384,
+        "excluded": 2118
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "curl",
+        "version": "8.4.0",
+        "variant": "aarch64-bootlin-sysroot-2020.08-source",
+        "language": "AARCH64:LE:64:v8A",
+        "objects": "work/hunt/prepared/0e4753c9a4f5f5e1/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "0e4753c9a4f5f5e19b40e2748ee8707b32c26bae3ddba7feac5d3d72bf0617a1",
+        "source_url": "https://curl.se/download/curl-8.4.0.tar.gz",
+        "source_sha256": "816e41809c043ff285e8c0f06a75a1fa250211bbfb2dc0a037eeef39f1a9e427"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/0e4753c9a4f5/library.fidb",
+      "build": {
+        "programs": 164,
+        "attempted": 1105,
+        "added": 904,
+        "excluded": 201
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    },
+    {
+      "guess": {
+        "family": "zlib",
+        "version": "1.3",
+        "variant": "aarch64-bootlin-sysroot-2020.08-source",
+        "language": "AARCH64:LE:64:v8A",
+        "objects": "work/hunt/prepared/71d986e77be0adc5/objects",
+        "pattern": ".*",
+        "limit": null,
+        "recipe_digest": "71d986e77be0adc513860a2e1483d59ca52bcf4d094ab69f978c597b2453a88a",
+        "source_url": "https://zlib.net/fossils/zlib-1.3.tar.gz",
+        "source_sha256": "ff0ba4c292013dbc27530b3a81e1f9a813cd39de01ca5e0f8bf355702efa593e"
+      },
+      "fidb": "/home/thomas/github/FIDB-gen-POC/work/hunt/candidates/71d986e77be0/library.fidb",
+      "build": {
+        "programs": 15,
+        "attempted": 124,
+        "added": 108,
+        "excluded": 16
+      },
+      "assessment": {
+        "matched_functions": 0,
+        "match_count": 0,
+        "unambiguous_match_count": 0,
+        "unambiguous_matches": [],
+        "matches": []
+      }
+    }
+  ],
+  "matched": false,
+  "toolchains": "toolchains/registry.toml",
+  "recipes": "recipes/libs",
+  "report": "artifacts/sweep_reports_unexpected/baf3d3dfbc28ff11ce1063eb83a0a686.json",
+  "fidbs": []
+}
