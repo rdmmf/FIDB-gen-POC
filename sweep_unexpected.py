@@ -45,6 +45,7 @@ def process_sample(sample):
         "--guess", "curl",
         "--guess", "zlib",
         "--guess", "mbedtls",
+        "--guess", "libssh2",
         "--guess", "libpcap",
         "--report", report_file
     ], capture_output=True, env=env)

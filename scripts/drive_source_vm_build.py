@@ -72,7 +72,7 @@ parser.add_argument("--payload-kind", choices=("zip",), help="required with --pa
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
 parser.add_argument(
     "--build-adapter",
-    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl", "configure", "configure_zlib", "configure_libpcap", "make_mbedtls"),
+    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl", "configure", "configure_zlib", "configure_libpcap", "make_mbedtls", "configure_libssh2"),
     default="uclibc_defconfig",
 )
 parser.add_argument(
@@ -245,6 +245,15 @@ elif args.build_adapter == "configure_zlib":
         f"> /root/config.log 2>&1 ; cat /root/config.log ; "
         f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
+elif args.build_adapter == "configure_libssh2":
+    print(">>> starting build (libssh2 ./configure)", flush=True)
+    build_command = (
+        f"cd /root/build && "
+        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"./configure --host={args.arch}-linux --disable-shared --without-openssl --without-libgcrypt "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
 elif args.build_adapter == "configure_libpcap":
     print(">>> starting build (libpcap ./configure)", flush=True)
     build_command = (
@@ -254,7 +263,7 @@ elif args.build_adapter == "configure_libpcap":
         f"> /root/config.log 2>&1 ; cat /root/config.log ; "
         f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
-elif args.build_adapter == "make_mbedtls":
+elif args.build_adapter == "make_mbedtls", "configure_libssh2":
     print(">>> starting build (mbedtls make)", flush=True)
     build_command = (
         f"cd /root/build && "
