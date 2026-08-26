@@ -498,6 +498,10 @@ priority = 20
 url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--uclibc--stable-2020.08-1.tar.bz2"
 sha256 = "e817af2d5a0fba654e7766dcad89380e278af9feb35c2d0591a0f8d893defa48"
 library_member = "powerpc-e500mc--uclibc--stable-2020.08-1/powerpc-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/powerpc-e500mc/tarballs/powerpc-e500mc--uclibc--stable-2020.08-1.tar.bz2"
+toolchain_sha256 = "e817af2d5a0fba654e7766dcad89380e278af9feb35c2d0591a0f8d893defa48"
+cross_bin_prefix = "bin/powerpc-buildroot-linux-uclibc-"
+cross_arch = "powerpc"
 
 [[toolchain]]
 family = "uclibc"
