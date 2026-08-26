@@ -72,7 +72,7 @@ parser.add_argument("--payload-kind", choices=("zip",), help="required with --pa
 parser.add_argument("--toolchain-dir", required=True, help="toolchain dir name under --work")
 parser.add_argument(
     "--build-adapter",
-    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl", "configure", "configure_zlib"),
+    choices=("uclibc_defconfig", "plain_make", "mirai_bot_gcc", "openssl", "configure", "configure_zlib", "configure_libpcap", "make_mbedtls"),
     default="uclibc_defconfig",
 )
 parser.add_argument(
@@ -245,6 +245,23 @@ elif args.build_adapter == "configure_zlib":
         f"> /root/config.log 2>&1 ; cat /root/config.log ; "
         f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
+elif args.build_adapter == "configure_libpcap":
+    print(">>> starting build (libpcap ./configure)", flush=True)
+    build_command = (
+        f"cd /root/build && "
+        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"./configure --host={args.arch}-linux --disable-shared "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
+elif args.build_adapter == "make_mbedtls":
+    print(">>> starting build (mbedtls make)", flush=True)
+    build_command = (
+        f"cd /root/build && "
+        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"make no_test lib -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
+
 run(build_command, timeout=2400)
 run("tail -c 300000 /root/build.log")
 print(">>> build step done", flush=True)

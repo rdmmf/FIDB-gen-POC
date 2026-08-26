@@ -1,0 +1,10 @@
+schema_version = "fidb-recipe/v3"
+mode = "source"
+name = "mbedtls"
+version = "2.28.8"
+url = "https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v2.28.8.tar.gz"
+sha256 = "4fef7de0d8d542510d726d643350acb3cdb9dc76ad45611b59c9aa08372b4213"
+library_path = "library/libmbedcrypto.a"
+build_adapter = "make_mbedtls"
+toolchain_family = "uclibc"
+toolchain_variants = []

@@ -1,0 +1,10 @@
+schema_version = "fidb-recipe/v3"
+mode = "source"
+name = "libpcap"
+version = "1.10.4"
+url = "https://www.tcpdump.org/release/libpcap-1.10.4.tar.gz"
+sha256 = "ed19a0383fad72e3ad435fd239d7cd80d64916b87269550159d20e47160ebe5f"
+library_path = "libpcap.a"
+build_adapter = "configure_libpcap"
+toolchain_family = "uclibc"
+toolchain_variants = []
