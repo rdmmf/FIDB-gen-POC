@@ -263,7 +263,7 @@ elif args.build_adapter == "configure_libpcap":
         f"> /root/config.log 2>&1 ; cat /root/config.log ; "
         f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
-elif args.build_adapter == "make_mbedtls", "configure_libssh2":
+elif args.build_adapter == "make_mbedtls":
     print(">>> starting build (mbedtls make)", flush=True)
     build_command = (
         f"cd /root/build && "
