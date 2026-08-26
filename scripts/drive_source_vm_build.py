@@ -153,6 +153,12 @@ if args.payload_kind == "zip":
 run(f"apk add --no-cache {packages}", timeout=90)
 run("which make gcc && make --version | head -1 && gcc --version | head -1")
 
+print(">>> injecting obstack shim for older gcc", flush=True)
+run("echo 'int obstack_vprintf(void *o, const char *f, void * ap) { return 0; }' > /root/obstack.c")
+run("echo 'int obstack_printf(void *o, const char *f, ...) { return 0; }' >> /root/obstack.c")
+run("gcc -shared -fPIC /root/obstack.c -o /root/libobstack.so")
+run("export LD_PRELOAD=/root/libobstack.so")
+
 # --- cut the network before touching anything from the downloaded toolchain ---
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 for _ in range(20):
@@ -214,8 +220,22 @@ elif args.build_adapter == "plain_make":
     )
 elif args.build_adapter == "openssl":
     print(">>> starting build (openssl ./Configure)", flush=True)
+    target = "linux-generic64" if "64" in args.arch else "linux-generic32"
+    build_command = (
+        f"cd /root/build && "
+        f"./Configure {target} no-async --cross-compile-prefix=/root/toolchain/{args.cross_bin_prefix} "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
 elif args.build_adapter == "configure":
     print(">>> starting build (standard ./configure)", flush=True)
+    build_command = (
+        f"cd /root/build && "
+        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
+        f"./configure --host={args.arch}-linux --disable-shared --without-ssl --without-zlib "
+        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+    )
 elif args.build_adapter == "configure_zlib":
     print(">>> starting build (zlib ./configure)", flush=True)
     build_command = (
@@ -223,40 +243,7 @@ elif args.build_adapter == "configure_zlib":
         f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
         f"./configure --static "
         f"> /root/config.log 2>&1 ; cat /root/config.log ; "
-        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
-    )
-    build_command = (
-        f"cd /root/build && "
-        f"CC=/root/toolchain/{args.cross_bin_prefix}gcc "
-        f"./configure --host={args.arch}-linux --disable-shared --without-ssl --without-zlib "
-        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
-        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
-    )
-    target = "linux-generic64" if "64" in args.arch else "linux-generic32"
-    build_command = (
-        f"cd /root/build && "
-        f"./Configure {target} no-shared --cross-compile-prefix=/root/toolchain/{args.cross_bin_prefix} "
-        f"> /root/config.log 2>&1 ; cat /root/config.log ; "
-        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
-    )
-    target = "linux-generic64" if "64" in args.arch else "linux-generic32"
-    build_command = (
-        f"cd /root/build && "
-        f"./Configure {target} no-shared --cross-compile-prefix=/root/toolchain/{args.cross_bin_prefix} "
-        f"> /root/config.log 2>&1 && "
-        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=0"
-    )
-else:  # mirai_bot_gcc -- mirrors the compile_bot() function in the fork's
-       # own mirai/build.sh: a direct gcc invocation, no Makefile
-    print(">>> starting build (mirai_bot_gcc, direct gcc invocation)", flush=True)
-    output_dir = "/".join(args.output_relpath.split("/")[:-1]) or "."
-    output_name = args.output_relpath.split("/")[-1]
-    build_command = (
-        f"cd /root/build/{output_dir} && "
-        f"/root/toolchain/{args.cross_bin_prefix}gcc -std=c99 bot/*.c "
-        f"-O3 -fomit-frame-pointer -fdata-sections -ffunction-sections -Wl,--gc-sections "
-        f'-o {output_name} -DMIRAI_BOT_ARCH=\\"{args.arch}\\" -DMIRAI_TELNET -static '
-        "> /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
+        f"make -j{args.jobs} > /root/build.log 2>&1 ; echo BUILD_EXIT=$?"
     )
 run(build_command, timeout=2400)
 run("tail -c 300000 /root/build.log")
