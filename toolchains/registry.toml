@@ -107,6 +107,9 @@ priority = 10
 url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--uclibc--bleeding-edge-2024.02-1.tar.bz2"
 sha256 = "0ebf73f28a369120b0d33ee6800b9b10cf36851cbed3bcad7828c61a7da69588"
 library_member = "x86-64--uclibc--bleeding-edge-2024.02-1/x86_64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+toolchain_sha256 = "0ebf73f28a369120b0d33ee6800b9b10cf36851cbed3bcad7828c61a7da69588"
+cross_bin_prefix = "bin/x86_64-buildroot-linux-uclibc-"
+cross_arch = "x86_64"
 
 [[toolchain]]
 family = "uclibc"
@@ -222,6 +225,10 @@ priority = 20
 url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--uclibc--stable-2020.08-1.tar.bz2"
 sha256 = "8398010ea3dbd43ee99b6be0e3340db44b32228bf063a9c13bf43a359e3d1f6e"
 library_member = "mips32el--uclibc--stable-2020.08-1/mipsel-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/mips32el/tarballs/mips32el--uclibc--stable-2020.08-1.tar.bz2"
+toolchain_sha256 = "8398010ea3dbd43ee99b6be0e3340db44b32228bf063a9c13bf43a359e3d1f6e"
+cross_bin_prefix = "bin/mipsel-buildroot-linux-uclibc-"
+cross_arch = "mipsel"
 
 [[toolchain]]
 family = "musl"
@@ -258,6 +265,10 @@ priority = 20
 url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--uclibc--stable-2020.08-1.tar.bz2"
 sha256 = "cf6a668d4f30a4a2e76a0e88177e1301342cc011e94ea399353e77ede0efbb22"
 library_member = "armv5-eabi--uclibc--stable-2020.08-1/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/lib/libc.a"
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--uclibc--stable-2020.08-1.tar.bz2"
+toolchain_sha256 = "cf6a668d4f30a4a2e76a0e88177e1301342cc011e94ea399353e77ede0efbb22"
+cross_bin_prefix = "bin/arm-buildroot-linux-uclibcgnueabi-"
+cross_arch = "arm"
 
 [[toolchain]]
 family = "musl"
@@ -499,6 +510,10 @@ priority = 20
 url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--uclibc--stable-2021.11-5.tar.bz2"
 sha256 = "e68fd1b23f4a5c5132f2122e4012c17eb24e5179b2ff45bb793a27ac30dd454f"
 library_member = "x86-64--uclibc--stable-2021.11-5/x86_64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/x86-64/tarballs/x86-64--uclibc--stable-2021.11-5.tar.bz2"
+toolchain_sha256 = "e68fd1b23f4a5c5132f2122e4012c17eb24e5179b2ff45bb793a27ac30dd454f"
+cross_bin_prefix = "bin/x86_64-buildroot-linux-uclibc-"
+cross_arch = "x86_64"
 
 [[toolchain]]
 family = "musl"
@@ -552,3 +567,7 @@ priority = 20
 url = "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--uclibc--stable-2020.08-1.tar.bz2"
 sha256 = "04176f56ac977215c5257c307cece2d32e03770b96380e09c50379d4d84a5b39"
 library_member = "aarch64--uclibc--stable-2020.08-1/aarch64-buildroot-linux-uclibc/sysroot/usr/lib/libc.a"
+toolchain_url = "https://toolchains.bootlin.com/downloads/releases/toolchains/aarch64/tarballs/aarch64--uclibc--stable-2020.08-1.tar.bz2"
+toolchain_sha256 = "04176f56ac977215c5257c307cece2d32e03770b96380e09c50379d4d84a5b39"
+cross_bin_prefix = "bin/aarch64-buildroot-linux-uclibc-"
+cross_arch = "aarch64"
